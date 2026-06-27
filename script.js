@@ -1,31 +1,17 @@
 /**
- * FlightLog MVP - 메인 로직 스크립트 (로그인 기능 추가 버전)
- * 초보자 가이드: 이 파일은 웹 애플리케이션의 동작 및 LocalStorage를 활용한 회원가입/로그인 세션을 관리합니다.
- * 각 사용자마다 고유한 비행 데이터를 저장하도록 데이터 격리 처리를 추가했습니다.
+ * FlightLog MVP - 메인 로직 스크립트 (단일 사용자 버전)
+ * 초보자 가이드: 이 파일은 웹 애플리케이션의 동작(이벤트 처리, 데이터 로드 및 저장, 화면 갱신 등)을 관리합니다.
+ * LocalStorage를 활용하여 브라우저가 새로고침되어도 데이터가 유지되도록 합니다.
  */
 
-// 애플리케이션 전역 상태 (State) 관리 객체
+// 애플리케이션 상태 (State) 관리 객체
 const state = {
-    currentUser: null,   // 현재 로그인한 사용자 정보 { email, name }
-    flights: [],         // 현재 로그인한 사용자의 비행 기록 배열
+    flights: [],         // 현재 비행 기록 배열
     searchQuery: ""      // 현재 실시간 검색어
 };
 
-// DOM 요소 참조 객체
+// DOM 요소 참조 (HTML 요소를 자바스크립트로 조작하기 위함)
 const elements = {
-    // 앱 컨테이너 및 헤더 관련
-    authContainer: document.getElementById("auth-container"),
-    mainAppContainer: document.getElementById("main-app-container"),
-    userDisplayName: document.getElementById("user-display-name"),
-    logoutBtn: document.getElementById("logout-btn"),
-
-    // 로그인 / 회원가입 폼 관련
-    loginForm: document.getElementById("login-form"),
-    registerForm: document.getElementById("register-form"),
-    toRegisterBtn: document.getElementById("to-register-btn"),
-    toLoginBtn: document.getElementById("to-login-btn"),
-
-    // 메인 앱 기능 관련
     grid: document.getElementById("flight-cards-grid"),
     emptyState: document.getElementById("empty-state"),
     totalFlightsVal: document.getElementById("total-flights-val"),
@@ -41,187 +27,51 @@ const elements = {
 };
 
 // ==========================================================================
-// 1. 초기화 및 세션 관리 (Authentication & Session)
+// 1. 초기 데이터 로드 및 로컬스토리지 (LocalStorage) 연동
 // ==========================================================================
 
 /**
- * 앱 시작 시 로그인 세션을 체크하고 초기화하는 함수
+ * 앱이 처음 켜질 때 데이터를 불러오는 함수
  */
 function initApp() {
-    // 1. 로컬스토리지에서 현재 로그인 세션 확인
-    const session = localStorage.getItem("flightLog_current_user");
+    // 로컬스토리지에서 'flightLog_flights' 키에 저장된 데이터를 읽어옵니다.
+    const storedFlights = localStorage.getItem("flightLog_flights");
 
-    if (session) {
-        // 세션 정보가 존재하면 자동 로그인 처리
-        state.currentUser = JSON.parse(session);
-        showMainApp();
+    if (storedFlights) {
+        // 데이터가 존재하면 JSON 문자열을 원래의 자바스크립트 배열 객체로 변환합니다.
+        state.flights = JSON.parse(storedFlights);
     } else {
-        // 세션 정보가 없으면 로그인 화면 노출
-        showAuthScreen();
+        // 데이터가 없으면, data/sampleFlights.js에서 정의한 기본 샘플 데이터를 사용합니다.
+        state.flights = [...window.sampleFlights];
+        saveFlightsToStorage(); // 샘플 데이터를 로컬스토리지에 저장합니다.
     }
 
-    // 공통 이벤트 리스너 등록
+    // 화면 그리기 (렌더링) 및 통계 업데이트
+    renderApp();
     setupEventListeners();
 }
 
 /**
- * 메인 앱 화면을 노출하고 데이터를 로드하는 함수
- */
-function showMainApp() {
-    elements.authContainer.classList.add("hidden");
-    elements.mainAppContainer.classList.remove("hidden");
-    elements.userDisplayName.textContent = `${state.currentUser.name} 님`;
-
-    // 해당 사용자 고유의 비행기 기록 로드
-    loadUserFlights();
-    renderApp();
-}
-
-/**
- * 로그인/회원가입 화면을 노출하는 함수
- */
-function showAuthScreen() {
-    elements.mainAppContainer.classList.add("hidden");
-    elements.authContainer.classList.remove("hidden");
-    state.currentUser = null;
-    state.flights = [];
-}
-
-/**
- * 로그인한 사용자 고유의 비행 데이터를 불러오는 함수
- */
-function loadUserFlights() {
-    // 사용자 이메일별로 고유 키를 정의하여 데이터를 격리합니다. (예: flightLog_flights_abc@email.com)
-    const userStorageKey = `flightLog_flights_${state.currentUser.email}`;
-    const storedFlights = localStorage.getItem(userStorageKey);
-
-    if (storedFlights) {
-        state.flights = JSON.parse(storedFlights);
-    } else {
-        // 신규 유저의 편의를 위해 초기 3개의 샘플 데이터를 자동으로 세팅해줍니다. (이행 계획 합의사항)
-        state.flights = [...window.sampleFlights];
-        saveFlightsToStorage(); 
-    }
-}
-
-/**
- * 현재 사용자의 비행 데이터를 로컬스토리지에 저장하는 함수
+ * 현재 상태(state.flights)를 로컬스토리지에 저장하는 함수
  */
 function saveFlightsToStorage() {
-    if (state.currentUser) {
-        const userStorageKey = `flightLog_flights_${state.currentUser.email}`;
-        localStorage.setItem(userStorageKey, JSON.stringify(state.flights));
-    }
+    localStorage.setItem("flightLog_flights", JSON.stringify(state.flights));
 }
 
 // ==========================================================================
-// 2. 회원가입 및 로그인 처리 로직
+// 2. 화면 렌더링 및 통계 계산
 // ==========================================================================
 
 /**
- * 회원가입 폼 제출 처리 함수
+ * 화면의 카드 목록과 통계 대시보드를 최신 데이터 기준으로 다시 그리는 함수
  */
-function handleRegisterSubmit(e) {
-    e.preventDefault();
-
-    const name = document.getElementById("register-name").value.trim();
-    const email = document.getElementById("register-email").value.trim().toLowerCase();
-    const password = document.getElementById("register-password").value;
-
-    // 가입된 전체 회원 목록 가져오기
-    const usersJson = localStorage.getItem("flightLog_users") || "[]";
-    const users = JSON.parse(usersJson);
-
-    // 이메일 중복 검사
-    const isDuplicate = users.some(user => user.email === email);
-    if (isDuplicate) {
-        alert("이미 가입된 이메일 주소입니다.");
-        return;
-    }
-
-    // 신규 회원 등록
-    users.push({ name, email, password });
-    localStorage.setItem("flightLog_users", JSON.stringify(users));
-
-    // 이메일 전용 비행 기록 저장 공간에 기본 샘플 데이터 자동 세팅
-    const userStorageKey = `flightLog_flights_${email}`;
-    localStorage.setItem(userStorageKey, JSON.stringify(window.sampleFlights));
-
-    alert("회원가입이 완료되었습니다! 로그인해 주세요.");
-    
-    // 로그인 폼으로 전환 및 이메일 입력값 세팅
-    toggleAuthForm("login");
-    document.getElementById("login-email").value = email;
-    document.getElementById("login-password").focus();
-}
-
-/**
- * 로그인 폼 제출 처리 함수
- */
-function handleLoginSubmit(e) {
-    e.preventDefault();
-
-    const email = document.getElementById("login-email").value.trim().toLowerCase();
-    const password = document.getElementById("login-password").value;
-
-    // 가입된 전체 회원 목록 가져오기
-    const usersJson = localStorage.getItem("flightLog_users") || "[]";
-    const users = JSON.parse(usersJson);
-
-    // 회원 일치 검증
-    const matchedUser = users.find(user => user.email === email && user.password === password);
-
-    if (matchedUser) {
-        // 세션 정보 로컬스토리지에 임시 저장
-        const sessionData = { email: matchedUser.email, name: matchedUser.name };
-        localStorage.setItem("flightLog_current_user", JSON.stringify(sessionData));
-        state.currentUser = sessionData;
-
-        // 메인 화면 로딩
-        showMainApp();
-        
-        // 입력 폼 리셋
-        elements.loginForm.reset();
-    } else {
-        alert("이메일 또는 비밀번호가 올바르지 않습니다.");
-    }
-}
-
-/**
- * 로그아웃 처리 함수
- */
-function handleLogout() {
-    if (confirm("로그아웃 하시겠습니까?")) {
-        localStorage.removeItem("flightLog_current_user");
-        showAuthScreen();
-    }
-}
-
-/**
- * 로그인 폼 <=> 회원가입 폼 화면 전환 함수
- */
-function toggleAuthForm(type) {
-    if (type === "register") {
-        elements.loginForm.classList.add("hidden");
-        elements.registerForm.classList.remove("hidden");
-        document.getElementById("auth-subtitle").textContent = "간단한 정보만으로 나만의 비행 로그북을 만들어보세요.";
-    } else {
-        elements.registerForm.classList.add("hidden");
-        elements.loginForm.classList.remove("hidden");
-        document.getElementById("auth-subtitle").textContent = "비행을 기록하고 나의 여정을 시작하세요";
-    }
-}
-
-// ==========================================================================
-// 3. 비행기 기록 화면 렌더링 및 통계 계산
-// ==========================================================================
-
 function renderApp() {
     // 1. 실시간 검색어를 기반으로 비행 기록 필터링
     const filteredFlights = state.flights.filter(flight => {
         const query = state.searchQuery.toLowerCase().trim();
-        if (!query) return true;
+        if (!query) return true; // 검색어가 없으면 전부 노출
 
+        // 검색 대상 필드들: 항공사, 편명, 기종명, 등록부호, 출발공항, 도착공항
         return (
             (flight.airline && flight.airline.toLowerCase().includes(query)) ||
             (flight.flightNumber && flight.flightNumber.toLowerCase().includes(query)) ||
@@ -235,7 +85,7 @@ function renderApp() {
     // 2. 카드 그리드 초기화
     elements.grid.innerHTML = "";
 
-    // 3. 필터링 결과 처리
+    // 3. 필터링된 결과가 없을 경우 빈 화면(Empty State) 표시 처리
     if (filteredFlights.length === 0) {
         elements.emptyState.classList.remove("hidden");
         elements.grid.style.display = "none";
@@ -243,18 +93,26 @@ function renderApp() {
         elements.emptyState.classList.add("hidden");
         elements.grid.style.display = "grid";
 
+        // 필터링된 비행 로그를 하나씩 돌면서 보딩패스 카드를 동적으로 렌더링합니다.
         filteredFlights.forEach(flight => {
             const cardHTML = createFlightCardHTML(flight);
             elements.grid.insertAdjacentHTML("beforeend", cardHTML);
         });
     }
 
-    // 4. 통계 및 카운트 배지 갱신
+    // 4. 상단 통계 대시보드 갱신
     updateStatistics();
+
+    // 5. 검색 결과 카운트 배지 갱신
     elements.filteredCount.textContent = filteredFlights.length;
 }
 
+/**
+ * 단일 비행 기록 객체를 바탕으로 보딩패스 형태의 HTML 문자열을 만드는 함수
+ */
 function createFlightCardHTML(flight) {
+    // AeroType 프로젝트와의 연동 여부를 판단합니다.
+    // aircraftTypeId가 존재하면 'AeroType 연동 기종' 배지를 렌더링합니다.
     const isLinked = flight.aircraftTypeId && flight.aircraftTypeId.trim() !== "";
     const badgeHTML = isLinked
         ? `<div class="aerotype-badge" title="AeroType 앱에서 검색 가능한 고유 ID: ${flight.aircraftTypeId}">
@@ -263,6 +121,7 @@ function createFlightCardHTML(flight) {
            </div>`
         : `<div class="aerotype-badge not-linked">비연동 기종</div>`;
 
+    // 메모 줄바꿈 및 유효성 처리
     const memoContent = flight.memo ? flight.memo : "등록된 메모가 없습니다.";
 
     return `
@@ -284,6 +143,7 @@ function createFlightCardHTML(flight) {
                 </div>
                 <div class="flight-path">
                     <div class="path-line"></div>
+                    <!-- 비행기 아이콘 -->
                     <svg class="path-plane-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M21 16V14L13 9V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z"/>
                     </svg>
@@ -325,10 +185,16 @@ function createFlightCardHTML(flight) {
     `;
 }
 
+/**
+ * 전체 비행 기록 데이터를 기반으로 요약 수치(통계)를 계산하고 표시하는 함수
+ */
 function updateStatistics() {
+    // 1. 총 비행 횟수
     const totalFlights = state.flights.length;
     elements.totalFlightsVal.textContent = totalFlights;
 
+    // Set 객체를 활용해 고유한(중복 없는) 값들만 추출합니다.
+    // 2. 탑승 항공사 수
     const uniqueAirlines = new Set(
         state.flights
             .map(f => f.airline ? f.airline.trim() : "")
@@ -336,6 +202,7 @@ function updateStatistics() {
     );
     elements.totalAirlinesVal.textContent = uniqueAirlines.size;
 
+    // 3. 탑승 기종 수 (기종 이름 기준)
     const uniqueTypes = new Set(
         state.flights
             .map(f => f.aircraftTypeName ? f.aircraftTypeName.trim() : "")
@@ -345,25 +212,30 @@ function updateStatistics() {
 }
 
 // ==========================================================================
-// 4. 비행 기록 추가 및 삭제 (CRUD)
+// 3. 비행 로그 추가 / 삭제 기능 (CRUD)
 // ==========================================================================
 
+/**
+ * 새로운 비행 로그를 등록하는 이벤트 핸들러
+ */
 function handleAddFlightSubmit(event) {
-    event.preventDefault();
+    event.preventDefault(); // 폼 제출 시 페이지가 새로고침되는 기본 동작을 막습니다.
 
+    // 폼 입력 필드 값 가져오기 및 양끝 공백 제거
     const date = document.getElementById("flight-date").value;
     const airline = document.getElementById("flight-airline").value.trim();
-    const flightNumber = document.getElementById("flight-number").value.trim().toUpperCase();
-    const registration = document.getElementById("flight-registration").value.trim().toUpperCase();
-    const departureAirport = document.getElementById("flight-dep").value.trim().toUpperCase();
-    const arrivalAirport = document.getElementById("flight-arr").value.trim().toUpperCase();
+    const flightNumber = document.getElementById("flight-number").value.trim().toUpperCase(); // 편명은 대문자로
+    const registration = document.getElementById("flight-registration").value.trim().toUpperCase(); // 등록기호도 대문자로
+    const departureAirport = document.getElementById("flight-dep").value.trim().toUpperCase(); // 공항 코드 대문자
+    const arrivalAirport = document.getElementById("flight-arr").value.trim().toUpperCase(); // 공항 코드 대문자
     const aircraftTypeName = document.getElementById("flight-typename").value.trim();
-    const aircraftTypeId = document.getElementById("flight-typeid").value.trim().toLowerCase();
+    const aircraftTypeId = document.getElementById("flight-typeid").value.trim().toLowerCase(); // 매핑 ID는 소문자로 정규화
     const seat = document.getElementById("flight-seat").value.trim().toUpperCase();
     const memo = document.getElementById("flight-memo").value;
 
+    // 간단한 객체 빌더 패턴 적용
     const newFlight = {
-        id: "flight-" + Date.now(),
+        id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
         date,
         airline,
         flightNumber,
@@ -376,32 +248,44 @@ function handleAddFlightSubmit(event) {
         memo
     };
 
+    // 최신 비행 로그가 목록 맨 위에 가도록 배열 맨 앞에 추가합니다.
     state.flights.unshift(newFlight);
 
+    // 로컬스토리지에 저장 및 화면 재렌더링
     saveFlightsToStorage();
     renderApp();
 
+    // 입력 폼 초기화 및 모달 닫기
     elements.addFlightForm.reset();
     closeModal();
 }
 
+/**
+ * 비행 로그를 삭제하는 함수
+ * HTML 내 inline onclick 속성에서 호출합니다.
+ */
 function deleteFlight(id) {
+    // 삭제 전 사용자에게 확인을 요청합니다.
     if (confirm("이 비행 기록을 정말로 삭제하시겠습니까?")) {
+        // 일치하지 않는 아이디만 걸러내어 새로운 배열을 만듭니다.
         state.flights = state.flights.filter(flight => flight.id !== id);
+
+        // 로컬스토리지에 저장 및 화면 재렌더링
         saveFlightsToStorage();
         renderApp();
     }
 }
 
-// inline onclick 연동
+// 전역 스코프에 노출시켜 HTML inline onclick이 동작할 수 있도록 조치합니다.
 window.deleteFlight = deleteFlight;
 
 // ==========================================================================
-// 5. 모달 제어 및 이벤트 바인딩
+// 4. 모달 창 제어 & 이벤트 바인딩
 // ==========================================================================
 
 function openModal() {
     elements.formModal.classList.add("active");
+    // 모달을 열었을 때 자동으로 탑승일에 현재 날짜가 기본값으로 선택되도록 센스있는 편의 기능 추가
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("flight-date").value = today;
 }
@@ -411,44 +295,27 @@ function closeModal() {
 }
 
 function setupEventListeners() {
-    // 1. 실시간 검색창 이벤트
+    // 1. 실시간 검색창 입력 이벤트
     elements.searchInput.addEventListener("input", (e) => {
         state.searchQuery = e.target.value;
         renderApp();
     });
 
-    // 2. 모달 제어 이벤트
+    // 2. 모달 열기/닫기 이벤트
     elements.openFormBtn.addEventListener("click", openModal);
     elements.closeModalBtn.addEventListener("click", closeModal);
     elements.cancelFormBtn.addEventListener("click", closeModal);
 
+    // 모달 바깥 어두운 배경(Overlay)을 클릭했을 때 모달을 닫아주는 사용자 경험(UX) 개선 기능
     elements.formModal.addEventListener("click", (e) => {
         if (e.target === elements.formModal) {
             closeModal();
         }
     });
 
-    // 3. 비행 정보 등록 이벤트
+    // 3. 비행 등록 폼 제출 이벤트
     elements.addFlightForm.addEventListener("submit", handleAddFlightSubmit);
-
-    // 4. 로그인 및 회원가입 전환 토글 버튼 이벤트
-    elements.toRegisterBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        toggleAuthForm("register");
-    });
-
-    elements.toLoginBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        toggleAuthForm("login");
-    });
-
-    // 5. 회원가입 및 로그인 폼 제출 이벤트
-    elements.registerForm.addEventListener("submit", handleRegisterSubmit);
-    elements.loginForm.addEventListener("submit", handleLoginSubmit);
-
-    // 6. 로그아웃 버튼 이벤트
-    elements.logoutBtn.addEventListener("click", handleLogout);
 }
 
-// 브라우저 로드 완료 시 초기화 실행
+// 브라우저 로딩 완료 시 앱 실행
 document.addEventListener("DOMContentLoaded", initApp);
