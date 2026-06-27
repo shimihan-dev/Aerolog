@@ -894,3 +894,165 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   일반 유틸리티 클래스
+   ========================================================================== */
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   로그인 및 회원가입 화면 (Authentication UI)
+   ========================================================================== */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    padding: 20px;
+    animation: fadeIn 0.4s var(--transition-normal);
+}
+
+.auth-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 420px;
+    padding: 40px 32px;
+    animation: fadeInUp 0.5s var(--transition-normal);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.auth-logo-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--color-accent);
+    transform: rotate(45deg);
+    margin-bottom: 12px;
+    animation: planeGlide 3s ease-in-out infinite alternate;
+}
+
+.auth-header h1 {
+    font-family: var(--font-outfit);
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+}
+
+.auth-header p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.full-width-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px;
+}
+
+.auth-switch {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 16px;
+}
+
+.auth-switch a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+}
+
+.auth-switch a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   헤더 사용자 정보 및 로그아웃 버튼 (User Session UI)
+   ========================================================================== */
+.user-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.user-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+}
+
+.btn-logout {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.btn-logout:hover {
+    background-color: #f1f5f9;
+    color: var(--color-danger);
+    border-color: #f1f5f9;
+}
+
+.logout-icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* 일반 페이드인 효과 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 32px 20px;
+    }
+    .user-status-bar {
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
