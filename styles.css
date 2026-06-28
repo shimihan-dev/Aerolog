@@ -542,7 +542,6 @@ body {
     font-family: var(--font-outfit);
 }
 
-/* AeroType 링크 기종 배지 */
 .aerotype-badge {
     display: inline-flex;
     align-items: center;
@@ -555,6 +554,17 @@ body {
     border-radius: 4px;
     width: fit-content;
     margin-top: 4px;
+}
+
+.aerotype-badge.linked {
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.aerotype-badge.linked:hover {
+    background-color: #d1fae5;
+    transform: translateY(-1px);
 }
 
 .aerotype-badge.not-linked {

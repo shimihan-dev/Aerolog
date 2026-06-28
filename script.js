@@ -117,10 +117,10 @@ function createFlightCardHTML(flight) {
     // aircraftTypeId가 존재하면 'AeroType 연동 기종' 배지를 렌더링합니다.
     const isLinked = flight.aircraftTypeId && flight.aircraftTypeId.trim() !== "";
     const badgeHTML = isLinked
-        ? `<div class="aerotype-badge" title="AeroType 앱에서 검색 가능한 고유 ID: ${flight.aircraftTypeId}">
+        ? `<a href="../Aerotype/index.html?id=${flight.aircraftTypeId}" target="_blank" class="aerotype-badge linked" title="클릭하여 AeroType 사전에서 상세 정보 보기 (ID: ${flight.aircraftTypeId})">
             <svg class="aerotype-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             AeroType 연동 기종
-           </div>`
+           </a>`
         : `<div class="aerotype-badge not-linked">비연동 기종</div>`;
 
     // 메모 줄바꿈 및 유효성 처리
