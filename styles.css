@@ -895,3 +895,65 @@ body {
     }
 }
 
+/* ==========================================================================
+   편명 조회 기능 추가 스타일
+   ========================================================================== */
+.input-group-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.input-group-row input {
+    flex: 1;
+}
+
+.btn-small {
+    padding: 11px 16px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+}
+
+.lookup-status-msg {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.lookup-status-msg.loading {
+    color: var(--color-accent);
+}
+
+.lookup-status-msg.success {
+    color: var(--color-success);
+}
+
+.lookup-status-msg.error {
+    color: var(--color-warning);
+}
+
+/* 로딩 스피너 애니메이션 */
+.spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(37, 99, 235, 0.15);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+

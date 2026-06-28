@@ -23,7 +23,9 @@ const elements = {
     closeModalBtn: document.getElementById("close-modal-btn"),
     cancelFormBtn: document.getElementById("cancel-form-btn"),
     formModal: document.getElementById("form-modal"),
-    addFlightForm: document.getElementById("add-flight-form")
+    addFlightForm: document.getElementById("add-flight-form"),
+    lookupBtn: document.getElementById("btn-lookup-flight"),
+    lookupStatus: document.getElementById("lookup-status")
 };
 
 // ==========================================================================
@@ -288,10 +290,17 @@ function openModal() {
     // 모달을 열었을 때 자동으로 탑승일에 현재 날짜가 기본값으로 선택되도록 센스있는 편의 기능 추가
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("flight-date").value = today;
+
+    // 편명 조회 상태 초기화
+    elements.lookupStatus.className = "lookup-status-msg hidden";
+    elements.lookupStatus.innerHTML = "";
 }
 
 function closeModal() {
     elements.formModal.classList.remove("active");
+    // 편명 조회 상태 초기화
+    elements.lookupStatus.className = "lookup-status-msg hidden";
+    elements.lookupStatus.innerHTML = "";
 }
 
 function setupEventListeners() {
@@ -315,6 +324,56 @@ function setupEventListeners() {
 
     // 3. 비행 등록 폼 제출 이벤트
     elements.addFlightForm.addEventListener("submit", handleAddFlightSubmit);
+
+    // 4. 편명 자동 조회 이벤트
+    elements.lookupBtn.addEventListener("click", handleFlightLookup);
+}
+
+/**
+ * 편명을 데이터베이스에서 검색하여 출발지, 목적지, 기종 정보를 자동 완성하는 함수
+ */
+function handleFlightLookup() {
+    const flightNumInput = document.getElementById("flight-number");
+    const flightNum = flightNumInput.value.trim().toUpperCase();
+
+    // 1. 공백 검증
+    if (!flightNum) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ 편명을 입력한 후 조회를 눌러주세요.";
+        flightNumInput.focus();
+        return;
+    }
+
+    // 2. 조회 중 상태 UI 변경 (버튼 비활성화, 스피너 렌더링)
+    elements.lookupBtn.disabled = true;
+    elements.lookupStatus.className = "lookup-status-msg loading";
+    elements.lookupStatus.innerHTML = `<span class="spinner"></span> 정보를 조회 중입니다...`;
+
+    // 3. 실제 API 조회를 모사하기 위한 0.8초의 딜레이(지연) 적용
+    setTimeout(() => {
+        // 버튼 다시 활성화
+        elements.lookupBtn.disabled = false;
+
+        // Mock DB에서 해당 편명 정보 조회
+        const flightInfo = window.mockFlightsDb[flightNum];
+
+        if (flightInfo) {
+            // 4. 정보 발견 시 자동 입력 처리
+            document.getElementById("flight-airline").value = flightInfo.airline;
+            document.getElementById("flight-dep").value = flightInfo.departureAirport;
+            document.getElementById("flight-arr").value = flightInfo.arrivalAirport;
+            document.getElementById("flight-typename").value = flightInfo.aircraftTypeName;
+            document.getElementById("flight-typeid").value = flightInfo.aircraftTypeId;
+
+            // 성공 상태 메시지 출력
+            elements.lookupStatus.className = "lookup-status-msg success";
+            elements.lookupStatus.textContent = "✓ 비행 노선 및 기종 정보를 자동으로 채웠습니다.";
+        } else {
+            // 5. 정보 미발견 시 안내 메시지 출력 (필드 수정은 열어둠)
+            elements.lookupStatus.className = "lookup-status-msg error";
+            elements.lookupStatus.textContent = "⚠ 일치하는 노선 정보가 없습니다. 수동으로 입력해 주세요.";
+        }
+    }, 800);
 }
 
 // 브라우저 로딩 완료 시 앱 실행

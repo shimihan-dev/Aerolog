@@ -110,7 +110,11 @@
                     <!-- 편명 -->
                     <div class="form-group">
                         <label for="flight-number">편명 <span class="required">*</span></label>
-                        <input type="text" id="flight-number" placeholder="예: KE1101, OZ8902" required>
+                        <div class="input-group-row">
+                            <input type="text" id="flight-number" placeholder="예: KE1101, OZ8902" required>
+                            <button type="button" id="btn-lookup-flight" class="btn btn-secondary btn-small">조회</button>
+                        </div>
+                        <div id="lookup-status" class="lookup-status-msg hidden"></div>
                     </div>
                     <!-- 등록부호 -->
                     <div class="form-group">
@@ -167,6 +171,7 @@
 
     <!-- 자바스크립트 로드: 데이터 파일 먼저 로드 후 로직 스크립트 실행 -->
     <script src="data/sampleFlights.js"></script>
+    <script src="data/mockFlightsDb.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
