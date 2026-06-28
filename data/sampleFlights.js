@@ -9,7 +9,7 @@ const sampleFlights = [
         date: "2026-05-15",
         airline: "대한항공",
         flightNumber: "KE1101",
-        aircraftTypeId: "a220-300", // AeroType의 A220-300 카드 ID와 매핑
+        aircraftTypeId: "A220-300", // AeroType의 A220-300 카드 ID와 매핑
         aircraftTypeName: "Airbus A220-300",
         registration: "HL8314",
         departureAirport: "GMP",
@@ -22,7 +22,7 @@ const sampleFlights = [
         date: "2026-05-20",
         airline: "아시아나항공",
         flightNumber: "OZ8902",
-        aircraftTypeId: "a350-family", // AeroType의 A350 Family 카드 ID와 매핑
+        aircraftTypeId: "A350-900", // AeroType의 A350 Family 카드 ID와 매핑
         aircraftTypeName: "Airbus A350-900",
         registration: "HL8078",
         departureAirport: "CJU",
@@ -35,7 +35,7 @@ const sampleFlights = [
         date: "2026-06-01",
         airline: "대한항공",
         flightNumber: "KE081",
-        aircraftTypeId: "b787-family", // AeroType의 B787 Dreamliner 카드 ID와 매핑
+        aircraftTypeId: "B787-9", // AeroType의 B787 Dreamliner 카드 ID와 매핑
         aircraftTypeName: "Boeing 787-9",
         registration: "HL8082",
         departureAirport: "ICN",
