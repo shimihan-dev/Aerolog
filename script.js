@@ -329,12 +329,52 @@ function setupEventListeners() {
     elements.lookupBtn.addEventListener("click", handleFlightLookup);
 }
 
+// Aviationstack IATA 기종 코드 <=> AeroType 기종 정보 매핑 사전
+const AIRCRAFT_IATA_MAP = {
+    "A223": { name: "Airbus A220-300", id: "a220-300" },
+    "A221": { name: "Airbus A220-100", id: "a220-100" },
+    "A318": { name: "Airbus A318", id: "a318" },
+    "A319": { name: "Airbus A319", id: "a319" },
+    "A320": { name: "Airbus A320", id: "a320" },
+    "A321": { name: "Airbus A321", id: "a321" },
+    "A19N": { name: "Airbus A319neo", id: "a319neo" },
+    "A20N": { name: "Airbus A320neo", id: "a320neo" },
+    "A21N": { name: "Airbus A321neo", id: "a321neo" },
+    "A332": { name: "Airbus A330-200", id: "a330-family" },
+    "A333": { name: "Airbus A330-300", id: "a330-family" },
+    "A339": { name: "Airbus A330-900neo", id: "a330-family" },
+    "A343": { name: "Airbus A340-300", id: "a340-family" },
+    "A346": { name: "Airbus A340-600", id: "a340-family" },
+    "A359": { name: "Airbus A350-900", id: "a350-family" },
+    "A35K": { name: "Airbus A350-1000", id: "a350-family" },
+    "A388": { name: "Airbus A380-800", id: "a380" },
+    "B737": { name: "Boeing 737", id: "b737-family" },
+    "B738": { name: "Boeing 737-800", id: "b737-family" },
+    "B739": { name: "Boeing 737-900", id: "b737-family" },
+    "B37M": { name: "Boeing 737 MAX 8", id: "b737-family" },
+    "B38M": { name: "Boeing 737 MAX 8", id: "b737-family" },
+    "B39M": { name: "Boeing 737 MAX 9", id: "b737-family" },
+    "B744": { name: "Boeing 747-400", id: "b747-family" },
+    "B748": { name: "Boeing 747-8I", id: "b747-family" },
+    "B752": { name: "Boeing 757-200", id: "b757-family" },
+    "B763": { name: "Boeing 767-300", id: "b767-family" },
+    "B772": { name: "Boeing 777-200", id: "b777-family" },
+    "B77W": { name: "Boeing 777-300ER", id: "b777-family" },
+    "B788": { name: "Boeing 787-8", id: "b787-family" },
+    "B789": { name: "Boeing 787-9", id: "b787-family" },
+    "B78X": { name: "Boeing 787-10", id: "b787-family" },
+    "E170": { name: "Embraer 170", id: "e-jet-family" },
+    "E175": { name: "Embraer 175", id: "e-jet-family" },
+    "E190": { name: "Embraer 190", id: "e-jet-family" },
+    "E195": { name: "Embraer 195", id: "e-jet-family" }
+};
+
 /**
- * 편명을 데이터베이스에서 검색하여 출발지, 목적지, 기종 정보를 자동 완성하는 함수
+ * 편명을 실시간 API(Aviationstack)에서 조회하여 정보를 채워넣는 함수
  */
-function handleFlightLookup() {
+async function handleFlightLookup() {
     const flightNumInput = document.getElementById("flight-number");
-    const flightNum = flightNumInput.value.trim().toUpperCase();
+    const flightNum = flightNumInput.value.trim().toUpperCase().replace(/\s+/g, ''); // 공백 제거
 
     // 1. 공백 검증
     if (!flightNum) {
@@ -347,33 +387,83 @@ function handleFlightLookup() {
     // 2. 조회 중 상태 UI 변경 (버튼 비활성화, 스피너 렌더링)
     elements.lookupBtn.disabled = true;
     elements.lookupStatus.className = "lookup-status-msg loading";
-    elements.lookupStatus.innerHTML = `<span class="spinner"></span> 정보를 조회 중입니다...`;
+    elements.lookupStatus.innerHTML = `<span class="spinner"></span> 실시간 정보를 조회 중입니다...`;
 
-    // 3. 실제 API 조회를 모사하기 위한 0.8초의 딜레이(지연) 적용
-    setTimeout(() => {
-        // 버튼 다시 활성화
-        elements.lookupBtn.disabled = false;
+    // 3. API 호출 설정
+    const apiKey = "8c61bbc923c688a8a943e84b55284d1d";
+    const apiUrl = `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&flight_iata=${flightNum}`;
 
-        // Mock DB에서 해당 편명 정보 조회
-        const flightInfo = window.mockFlightsDb[flightNum];
-
-        if (flightInfo) {
-            // 4. 정보 발견 시 자동 입력 처리
-            document.getElementById("flight-airline").value = flightInfo.airline;
-            document.getElementById("flight-dep").value = flightInfo.departureAirport;
-            document.getElementById("flight-arr").value = flightInfo.arrivalAirport;
-            document.getElementById("flight-typename").value = flightInfo.aircraftTypeName;
-            document.getElementById("flight-typeid").value = flightInfo.aircraftTypeId;
-
-            // 성공 상태 메시지 출력
-            elements.lookupStatus.className = "lookup-status-msg success";
-            elements.lookupStatus.textContent = "✓ 비행 노선 및 기종 정보를 자동으로 채웠습니다.";
-        } else {
-            // 5. 정보 미발견 시 안내 메시지 출력 (필드 수정은 열어둠)
-            elements.lookupStatus.className = "lookup-status-msg error";
-            elements.lookupStatus.textContent = "⚠ 일치하는 노선 정보가 없습니다. 수동으로 입력해 주세요.";
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP 에러! 상태코드: ${response.status}`);
         }
-    }, 800);
+
+        const result = await response.json();
+
+        // API 내부 에러 핸들링 (예: API 키 유효성 에러 등)
+        if (result.error) {
+            throw new Error(result.error.message || result.error.info || "API 에러");
+        }
+
+        const flightsData = result.data;
+
+        // 4. 응답 데이터 검증 및 폼 바인딩
+        if (flightsData && flightsData.length > 0) {
+            // 가장 최근 비행 정보 선택
+            const flightInfo = flightsData[0];
+
+            const airlineName = flightInfo.airline ? flightInfo.airline.name : "";
+            const depIata = flightInfo.departure ? flightInfo.departure.iata : "";
+            const arrIata = flightInfo.arrival ? flightInfo.arrival.iata : "";
+            const registration = flightInfo.aircraft ? flightInfo.aircraft.registration : "";
+            const aircraftIata = flightInfo.aircraft ? flightInfo.aircraft.iata : "";
+
+            // 폼 필드 자동 입력
+            document.getElementById("flight-airline").value = airlineName || "";
+            document.getElementById("flight-dep").value = depIata || "";
+            document.getElementById("flight-arr").value = arrIata || "";
+            document.getElementById("flight-registration").value = registration || "";
+
+            // 기종 매핑 처리
+            let aircraftName = "";
+            let aircraftId = "";
+
+            if (aircraftIata) {
+                const mapped = AIRCRAFT_IATA_MAP[aircraftIata.toUpperCase()];
+                if (mapped) {
+                    aircraftName = mapped.name;
+                    aircraftId = mapped.id;
+                } else {
+                    aircraftName = aircraftIata; // 매핑 테이블에 없는 경우 코드명 그대로 노출
+                }
+            }
+
+            document.getElementById("flight-typename").value = aircraftName;
+            document.getElementById("flight-typeid").value = aircraftId;
+
+            // 성공 피드백 메시지
+            elements.lookupStatus.className = "lookup-status-msg success";
+            elements.lookupStatus.textContent = "✓ 실시간 비행 정보를 성공적으로 가져왔습니다.";
+        } else {
+            // 데이터 없음
+            elements.lookupStatus.className = "lookup-status-msg error";
+            elements.lookupStatus.textContent = "⚠ 일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.";
+        }
+    } catch (error) {
+        console.error("Flight Lookup Fetch Error:", error);
+        
+        elements.lookupStatus.className = "lookup-status-msg error";
+        // 브라우저의 혼합 콘텐츠 차단(HTTPS에서 HTTP 호출 차단)으로 인한 에러인지 감별
+        if (error.message && error.message.includes("Failed to fetch")) {
+            elements.lookupStatus.innerHTML = `⚠ <strong>보안 차단:</strong> HTTPS 환경에서는 무료 HTTP API 통신이 차단됩니다. 로컬 파일(file://)로 접속하여 확인해 주세요.`;
+        } else {
+            elements.lookupStatus.textContent = `⚠ 조회 중 에러 발생: ${error.message}`;
+        }
+    } finally {
+        // 버튼 상태 원복
+        elements.lookupBtn.disabled = false;
+    }
 }
 
 // 브라우저 로딩 완료 시 앱 실행
