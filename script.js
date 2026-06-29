@@ -231,6 +231,60 @@ function updateStatistics() {
 // ==========================================================================
 
 /**
+ * 사용자 입력 기종명을 바탕으로 AeroType 연동 기종 ID를 자동으로 유추/매핑하는 함수
+ */
+function deriveAircraftTypeId(typeName) {
+    if (!typeName) return "";
+    const name = typeName.trim().toUpperCase().replace(/\s+/g, ''); // 공백 제거 후 대문자화
+
+    // 표준 기종명 키워드 매칭
+    if (name.includes("787-9") || name.includes("789")) return "B787-9";
+    if (name.includes("787-8") || name.includes("788")) return "B787-8";
+    if (name.includes("787-10") || name.includes("78X")) return "B787-10";
+    if (name.includes("787")) return "B787-9"; // 기본값 지정
+    
+    if (name.includes("777-300ER") || name.includes("77W")) return "B777-300ER";
+    if (name.includes("777-200") || name.includes("772")) return "B777-200";
+    if (name.includes("777")) return "B777-300ER";
+    
+    if (name.includes("737-800") || name.includes("738")) return "B737-800";
+    if (name.includes("737MAX8") || name.includes("37M") || name.includes("38M")) return "B737 MAX 8";
+    if (name.includes("737MAX9") || name.includes("39M")) return "B737 MAX 9";
+    if (name.includes("737")) return "B737-800";
+    
+    if (name.includes("747-400") || name.includes("744")) return "B747-400";
+    if (name.includes("747-8") || name.includes("748")) return "B747-8";
+    
+    if (name.includes("350-900") || name.includes("359")) return "A350-900";
+    if (name.includes("350-1000") || name.includes("35K")) return "A350-1000";
+    if (name.includes("350")) return "A350-900";
+    
+    if (name.includes("380-800") || name.includes("388") || name.includes("380")) return "A380-800";
+    
+    if (name.includes("330-300") || name.includes("333")) return "A330-300";
+    if (name.includes("330-200") || name.includes("332")) return "A330-200";
+    if (name.includes("330-900") || name.includes("339")) return "A330-900neo";
+    
+    if (name.includes("220-300") || name.includes("223")) return "A220-300";
+    if (name.includes("220-100") || name.includes("221")) return "A220-100";
+    
+    if (name.includes("321NEO") || name.includes("321N") || name.includes("21N")) return "A321neo";
+    if (name.includes("320NEO") || name.includes("320N") || name.includes("20N")) return "A320neo";
+    if (name.includes("321")) return "A321";
+    if (name.includes("320")) return "A320";
+    if (name.includes("319")) return "A319";
+    if (name.includes("318")) return "A318";
+    
+    if (name.includes("E170") || name.includes("170")) return "E170";
+    if (name.includes("E175") || name.includes("175")) return "E175";
+    if (name.includes("E190") || name.includes("190")) return "E190";
+    if (name.includes("E195") || name.includes("195")) return "E195";
+
+    // 일치하는 대안이 없으면, 입력한 원래 텍스트를 그대로 식별자로 써봅니다.
+    return typeName.trim();
+}
+
+/**
  * 새로운 비행 로그를 등록하는 이벤트 핸들러
  */
 function handleAddFlightSubmit(event) {
@@ -244,7 +298,12 @@ function handleAddFlightSubmit(event) {
     const departureAirport = document.getElementById("flight-dep").value.trim().toUpperCase(); // 공항 코드 대문자
     const arrivalAirport = document.getElementById("flight-arr").value.trim().toUpperCase(); // 공항 코드 대문자
     const aircraftTypeName = document.getElementById("flight-typename").value.trim();
-    const aircraftTypeId = document.getElementById("flight-typeid").value.trim().toLowerCase(); // 매핑 ID는 소문자로 정규화
+    
+    let aircraftTypeId = document.getElementById("flight-typeid").value.trim();
+    if (!aircraftTypeId) {
+        aircraftTypeId = deriveAircraftTypeId(aircraftTypeName);
+    }
+
     const seat = document.getElementById("flight-seat").value.trim().toUpperCase();
     const memo = document.getElementById("flight-memo").value;
 

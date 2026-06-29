@@ -245,12 +245,8 @@
                         <label for="flight-typename">기종명 <span class="required">*</span></label>
                         <input type="text" id="flight-typename" placeholder="예: Airbus A321neo" required>
                     </div>
-                    <!-- AeroType 기종 ID -->
-                    <div class="form-group">
-                        <label for="flight-typeid">AeroType 기종 ID</label>
-                        <input type="text" id="flight-typeid" placeholder="예: a321neo, b787-family">
-                        <small class="helper-text">AeroType 카드 ID와 일치하면 추후 연동 링크가 생성됩니다.</small>
-                    </div>
+                    <!-- AeroType 기종 ID (자동 매핑용 숨김 필드) -->
+                    <input type="hidden" id="flight-typeid">
                     <!-- 좌석 번호 -->
                     <div class="form-group">
                         <label for="flight-seat">좌석</label>
