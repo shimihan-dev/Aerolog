@@ -116,8 +116,17 @@ function createFlightCardHTML(flight) {
     // AeroType 프로젝트와의 연동 여부를 판단합니다.
     // aircraftTypeId가 존재하면 'AeroType 연동 기종' 배지를 렌더링합니다.
     const isLinked = flight.aircraftTypeId && flight.aircraftTypeId.trim() !== "";
+    // 실행 환경(로컬 vs Vercel 배포서버)에 따른 AeroType 경로 분기 처리
+    const isLocal = window.location.protocol === 'file:' || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+    
+    const aeroTypeBaseUrl = isLocal 
+        ? '../Aerotype/index.html' 
+        : 'https://aerotype-iota.vercel.app/';
+
     const badgeHTML = isLinked
-        ? `<a href="../Aerotype/index.html?id=${flight.aircraftTypeId}" target="_blank" class="aerotype-badge linked" title="클릭하여 AeroType 사전에서 상세 정보 보기 (ID: ${flight.aircraftTypeId})">
+        ? `<a href="${aeroTypeBaseUrl}?id=${flight.aircraftTypeId}" target="_blank" class="aerotype-badge linked" title="클릭하여 AeroType 사전에서 상세 정보 보기 (ID: ${flight.aircraftTypeId})">
             <svg class="aerotype-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             AeroType 연동 기종
            </a>`
