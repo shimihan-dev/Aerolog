@@ -796,6 +796,7 @@ body {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
     padding: 12px 14px;
     font-size: 0.95rem;
@@ -808,6 +809,7 @@ body {
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--border-focus);

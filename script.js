@@ -33,7 +33,10 @@ const elements = {
     closeStatsBtnX: document.getElementById("close-stats-btn-x"),
     dateInput: document.getElementById("flight-date"),
     datePickerBtn: document.getElementById("btn-date-picker"),
-    datePickerHidden: document.getElementById("flight-date-picker")
+    datePickerHidden: document.getElementById("flight-date-picker"),
+    seatInput: document.getElementById("flight-seat"),
+    seatPositionSelect: document.getElementById("flight-seat-position"),
+    seatClassSelect: document.getElementById("flight-seat-class")
 };
 
 // ==========================================================================
@@ -118,6 +121,39 @@ function renderApp() {
 }
 
 /**
+ * 좌석 위치(window, aisle, middle)를 한글로 변환하는 헬퍼 함수
+ */
+function getPositionKo(pos) {
+    if (pos === "window") return "창가";
+    if (pos === "aisle") return "복도";
+    if (pos === "middle") return "중간";
+    return "";
+}
+
+/**
+ * 좌석 등급(economy, premium, business, first)을 한글로 변환하는 헬퍼 함수
+ */
+function getClassKo(cls) {
+    if (cls === "economy") return "이코노미";
+    if (cls === "premium") return "프리미엄 이코노미";
+    if (cls === "business") return "비즈니스";
+    if (cls === "first") return "퍼스트";
+    return "";
+}
+
+/**
+ * 좌석 번호 끝 알파벳을 분석하여 좌석 위치를 추정하는 함수 (구버전 호환성용)
+ */
+function guessSeatPosition(seat) {
+    if (!seat) return "";
+    const last = seat.trim().toUpperCase().slice(-1);
+    if (["A", "F", "K"].includes(last)) return "window";
+    if (["C", "D", "G", "H"].includes(last)) return "aisle";
+    if (["B", "E", "J"].includes(last)) return "middle";
+    return "";
+}
+
+/**
  * 단일 비행 기록 객체를 바탕으로 보딩패스 형태의 HTML 문자열을 만드는 함수
  */
 function createFlightCardHTML(flight) {
@@ -185,8 +221,18 @@ function createFlightCardHTML(flight) {
                     <span class="detail-value number-font">${flight.registration ? flight.registration : '-'}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">좌석 번호</span>
-                    <span class="detail-value number-font">${flight.seat ? flight.seat : '-'}</span>
+                    <span class="detail-label">좌석 정보</span>
+                    <span class="detail-value number-font" style="line-height: 1.25;">
+                        ${flight.seat ? flight.seat : '-'}
+                        ${(flight.seatPosition || flight.seatClass || (flight.seat && guessSeatPosition(flight.seat))) ? `
+                            <span style="font-size: 0.72rem; color: var(--text-medium); display: block; font-weight: 500; margin-top: 3px; font-family: var(--font-sans);">
+                                ${[
+                                    getPositionKo(flight.seatPosition || guessSeatPosition(flight.seat)),
+                                    getClassKo(flight.seatClass)
+                                ].filter(Boolean).join(', ')}
+                            </span>
+                        ` : ''}
+                    </span>
                 </div>
             </div>
 
@@ -313,6 +359,8 @@ function handleAddFlightSubmit(event) {
     }
 
     const seat = document.getElementById("flight-seat").value.trim().toUpperCase();
+    const seatPosition = document.getElementById("flight-seat-position").value;
+    const seatClass = document.getElementById("flight-seat-class").value;
     const memo = document.getElementById("flight-memo").value;
 
     if (state.editingFlightId) {
@@ -330,6 +378,8 @@ function handleAddFlightSubmit(event) {
                 aircraftTypeName,
                 aircraftTypeId,
                 seat,
+                seatPosition,
+                seatClass,
                 memo
             };
         }
@@ -347,6 +397,8 @@ function handleAddFlightSubmit(event) {
             aircraftTypeName,
             aircraftTypeId,
             seat,
+            seatPosition,
+            seatClass,
             memo
         };
         state.flights.unshift(newFlight);
@@ -378,6 +430,8 @@ function editFlight(id) {
     document.getElementById("flight-typename").value = flight.aircraftTypeName;
     document.getElementById("flight-typeid").value = flight.aircraftTypeId || "";
     document.getElementById("flight-seat").value = flight.seat || "";
+    document.getElementById("flight-seat-position").value = flight.seatPosition || "";
+    document.getElementById("flight-seat-class").value = flight.seatClass || "";
     document.getElementById("flight-memo").value = flight.memo || "";
 
     // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경
@@ -511,6 +565,17 @@ function setupEventListeners() {
             e.target.value = `${val.slice(0, 4)}-${val.slice(4)}`;
         } else {
             e.target.value = val;
+        }
+    });
+
+    // 7. 좌석 번호 타이핑 시 좌석 위치 자동완성 예측 리스너
+    elements.seatInput.addEventListener("input", (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        if (val) {
+            const guessed = guessSeatPosition(val);
+            if (guessed) {
+                elements.seatPositionSelect.value = guessed;
+            }
         }
     });
 }
@@ -828,26 +893,30 @@ function calculateFlightStats() {
     document.getElementById("airbus-count-label").textContent = `${airbusCount}회 탑승`;
     document.getElementById("boeing-count-label").textContent = `${boeingCount}회 탑승`;
 
-    // 6. 좌석 선호도 비율 계산 (A, F, K => Window | C, D, G, H => Aisle | B, E => Middle)
+    // 6. 좌석 선호도 비율 계산 (입력받은 seatPosition 기준, 구버전은 guessSeatPosition 폴백 적용)
     let windowSeats = 0;
     let aisleSeats = 0;
     let middleSeats = 0;
     let totalSeatsWithInfo = 0;
 
     flights.forEach(f => {
-        const seat = (f.seat || "").trim().toUpperCase();
-        if (seat) {
-            const lastChar = seat.slice(-1);
-            if (["A", "F", "K"].includes(lastChar)) {
-                windowSeats++;
-                totalSeatsWithInfo++;
-            } else if (["C", "D", "G", "H"].includes(lastChar)) {
-                aisleSeats++;
-                totalSeatsWithInfo++;
-            } else if (["B", "E", "J"].includes(lastChar)) {
-                middleSeats++;
-                totalSeatsWithInfo++;
-            }
+        // 1순위: 명시적으로 선택된 좌석 위치 정보 사용
+        let pos = f.seatPosition;
+        
+        // 2순위: 정보가 없는 경우 좌석 번호 문자열을 분석하여 유추 (폴백)
+        if (!pos && f.seat) {
+            pos = guessSeatPosition(f.seat);
+        }
+        
+        if (pos === "window") {
+            windowSeats++;
+            totalSeatsWithInfo++;
+        } else if (pos === "aisle") {
+            aisleSeats++;
+            totalSeatsWithInfo++;
+        } else if (pos === "middle") {
+            middleSeats++;
+            totalSeatsWithInfo++;
         }
     });
 

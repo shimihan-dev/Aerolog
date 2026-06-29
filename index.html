@@ -255,8 +255,29 @@
                     <input type="hidden" id="flight-typeid">
                     <!-- 좌석 번호 -->
                     <div class="form-group">
-                        <label for="flight-seat">좌석</label>
+                        <label for="flight-seat">좌석 번호</label>
                         <input type="text" id="flight-seat" placeholder="예: 12C, 42A">
+                    </div>
+                    <!-- 좌석 위치 -->
+                    <div class="form-group">
+                        <label for="flight-seat-position">좌석 위치</label>
+                        <select id="flight-seat-position">
+                            <option value="">선택 안 함 / 기타</option>
+                            <option value="window">창가 (Window)</option>
+                            <option value="aisle">복도 (Aisle)</option>
+                            <option value="middle">중간 (Middle)</option>
+                        </select>
+                    </div>
+                    <!-- 좌석 등급 -->
+                    <div class="form-group">
+                        <label for="flight-seat-class">좌석 등급</label>
+                        <select id="flight-seat-class">
+                            <option value="">선택 안 함 / 기타</option>
+                            <option value="economy">이코노미 (Economy)</option>
+                            <option value="premium">프리미엄 이코노미 (Premium Economy)</option>
+                            <option value="business">비즈니스 (Business)</option>
+                            <option value="first">퍼스트 클래스 (First Class)</option>
+                        </select>
                     </div>
                 </div>
                 <!-- 메모 -->
