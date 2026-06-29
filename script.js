@@ -30,7 +30,10 @@ const elements = {
     statsModal: document.getElementById("stats-modal"),
     openStatsBtn: document.getElementById("open-stats-btn"),
     closeStatsBtn: document.getElementById("close-stats-btn"),
-    closeStatsBtnX: document.getElementById("close-stats-btn-x")
+    closeStatsBtnX: document.getElementById("close-stats-btn-x"),
+    dateInput: document.getElementById("flight-date"),
+    datePickerBtn: document.getElementById("btn-date-picker"),
+    datePickerHidden: document.getElementById("flight-date-picker")
 };
 
 // ==========================================================================
@@ -477,6 +480,37 @@ function setupEventListeners() {
     elements.statsModal.addEventListener("click", (e) => {
         if (e.target === elements.statsModal) {
             closeStatsModal();
+        }
+    });
+
+    // 6. 탑승일 직접 타이핑 및 달력 선택 동시 지원
+    elements.datePickerBtn.addEventListener("click", () => {
+        try {
+            elements.datePickerHidden.showPicker();
+        } catch (error) {
+            console.error("showPicker error, falling back to click:", error);
+            elements.datePickerHidden.click();
+        }
+    });
+
+    elements.datePickerHidden.addEventListener("change", (e) => {
+        if (e.target.value) {
+            elements.dateInput.value = e.target.value;
+        }
+    });
+
+    // 탑승일 입력 시 Hyphen(-) 자동 완성 및 형식 제어
+    elements.dateInput.addEventListener("input", (e) => {
+        let val = e.target.value.replace(/\D/g, ""); // 숫자만 남김
+        if (val.length > 8) val = val.slice(0, 8);
+
+        // YYYY-MM-DD 포맷팅
+        if (val.length >= 6) {
+            e.target.value = `${val.slice(0, 4)}-${val.slice(4, 6)}-${val.slice(6)}`;
+        } else if (val.length >= 4) {
+            e.target.value = `${val.slice(0, 4)}-${val.slice(4)}`;
+        } else {
+            e.target.value = val;
         }
     });
 }
