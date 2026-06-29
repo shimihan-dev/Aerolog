@@ -632,8 +632,8 @@ async function handleFlightLookup() {
 
         // 4. 응답 데이터 검증 및 폼 바인딩
         if (flightsData && flightsData.length > 0) {
-            // 가장 최근 비행 정보 선택
-            const flightInfo = flightsData[0];
+            // 가능하면 항공기 정보(등록부호 혹은 IATA 기종 코드)가 누락되지 않고 온전히 채워진 데이터를 우선적으로 찾아 바인딩합니다.
+            const flightInfo = flightsData.find(f => f.aircraft && (f.aircraft.registration || f.aircraft.iata)) || flightsData[0];
 
             let airlineName = flightInfo.airline ? flightInfo.airline.name : "";
             
