@@ -104,10 +104,15 @@ function renderApp() {
         );
     });
 
-    // 2. 카드 그리드 초기화
+    // 2. 비행 날짜 기준 내림차순 정렬 (최신 탑승일 순으로 맨 위에 정렬)
+    filteredFlights.sort((a, b) => {
+        return (b.date || "").localeCompare(a.date || "");
+    });
+
+    // 3. 카드 그리드 초기화
     elements.grid.innerHTML = "";
 
-    // 3. 필터링된 결과가 없을 경우 빈 화면(Empty State) 표시 처리
+    // 4. 필터링된 결과가 없을 경우 빈 화면(Empty State) 표시 처리
     if (filteredFlights.length === 0) {
         elements.emptyState.classList.remove("hidden");
         elements.grid.style.display = "none";
@@ -122,10 +127,10 @@ function renderApp() {
         });
     }
 
-    // 4. 상단 통계 대시보드 갱신
+    // 5. 상단 통계 대시보드 갱신
     updateStatistics();
 
-    // 5. 검색 결과 카운트 배지 갱신
+    // 6. 검색 결과 카운트 배지 갱신
     elements.filteredCount.textContent = filteredFlights.length;
 }
 
