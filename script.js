@@ -343,6 +343,11 @@ function deriveAircraftTypeId(typeName) {
     if (name.includes("319")) return "A319";
     if (name.includes("318")) return "A318";
     
+    if (name.includes("DASH-8") || name.includes("DASH8") || name.includes("Q400") || name.includes("DH4")) return "Dash8-400";
+    if (name.includes("DH1") || name.includes("DASH8-100")) return "Dash8-100";
+    if (name.includes("DH2") || name.includes("DASH8-200")) return "Dash8-200";
+    if (name.includes("DH3") || name.includes("DASH8-300")) return "Dash8-300";
+
     if (name.includes("E170") || name.includes("170")) return "E170";
     if (name.includes("E175") || name.includes("175")) return "E175";
     if (name.includes("E190") || name.includes("190")) return "E190";
@@ -677,9 +682,11 @@ const AIRCRAFT_IATA_MAP = {
     "B789": { name: "Boeing 787-9", id: "B787-9" },
     "B78X": { name: "Boeing 787-10", id: "B787-10" },
     "E170": { name: "Embraer 170", id: "E170" },
-    "E175": { name: "Embraer 175", id: "E175" },
-    "E190": { name: "Embraer 190", id: "E190" },
-    "E195": { name: "Embraer 195", id: "E195" }
+    "E195": { name: "Embraer 195", id: "E195" },
+    "DH1": { name: "Bombardier Dash 8-100", id: "Dash8-100" },
+    "DH2": { name: "Bombardier Dash 8-200", id: "Dash8-200" },
+    "DH3": { name: "Bombardier Dash 8-300", id: "Dash8-300" },
+    "DH4": { name: "Bombardier Dash 8 Q400", id: "Dash8-400" }
 };
 
 /**
