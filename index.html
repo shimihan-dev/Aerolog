@@ -195,6 +195,24 @@
         </div>
     </div>
 
+    <!-- 요약 디테일 조회 모달 창 -->
+    <div id="summary-detail-modal" class="modal-overlay">
+        <div class="modal-content summary-detail-content">
+            <div class="modal-header">
+                <h2 id="summary-detail-title">상세 정보 목록</h2>
+                <button id="close-summary-detail-btn-x" class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="summary-detail-body" id="summary-detail-body-content">
+                <!-- script.js에서 동적으로 세부 내용 주입 -->
+            </div>
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="button" id="close-summary-detail-btn" class="btn btn-primary" style="width: 100%;">확인</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 비행 기록 추가 모달 창 -->
     <div id="form-modal" class="modal-overlay">
         <div class="modal-content">

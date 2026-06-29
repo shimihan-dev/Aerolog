@@ -36,7 +36,16 @@ const elements = {
     datePickerHidden: document.getElementById("flight-date-picker"),
     seatInput: document.getElementById("flight-seat"),
     seatPositionSelect: document.getElementById("flight-seat-position"),
-    seatClassSelect: document.getElementById("flight-seat-class")
+    seatClassSelect: document.getElementById("flight-seat-class"),
+    
+    // 요약 카드 상세 리스트 모달용 추가
+    summaryDetailModal: document.getElementById("summary-detail-modal"),
+    summaryDetailTitle: document.getElementById("summary-detail-title"),
+    summaryDetailBody: document.getElementById("summary-detail-body-content"),
+    closeSummaryDetailBtn: document.getElementById("close-summary-detail-btn"),
+    closeSummaryDetailBtnX: document.getElementById("close-summary-detail-btn-x"),
+    statAirlinesCard: document.getElementById("stat-total-airlines"),
+    statTypesCard: document.getElementById("stat-total-types")
 };
 
 // ==========================================================================
@@ -578,6 +587,18 @@ function setupEventListeners() {
             }
         }
     });
+
+    // 8. 요약 대시보드 카드 클릭 이벤트 및 팝업 모달 제어
+    elements.statAirlinesCard.addEventListener("click", openAirlinesDetailModal);
+    elements.statTypesCard.addEventListener("click", openTypesDetailModal);
+    elements.closeSummaryDetailBtn.addEventListener("click", closeSummaryDetailModal);
+    elements.closeSummaryDetailBtnX.addEventListener("click", closeSummaryDetailModal);
+
+    elements.summaryDetailModal.addEventListener("click", (e) => {
+        if (e.target === elements.summaryDetailModal) {
+            closeSummaryDetailModal();
+        }
+    });
 }
 
 // Aviationstack 영문 항공사명 => 한글 항공사명 매핑 사전
@@ -969,6 +990,164 @@ function calculateFlightStats() {
         `;
         airportsContainer.insertAdjacentHTML("beforeend", chipHTML);
     });
+}
+
+/**
+ * 탑승 항공사 상세 목록 모달을 여는 함수
+ */
+function openAirlinesDetailModal() {
+    const flights = state.flights;
+    elements.summaryDetailTitle.textContent = "✈️ 탑승 항공사 및 노선 정보";
+    
+    if (flights.length === 0) {
+        elements.summaryDetailBody.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px 0; font-size:0.9rem;">기록된 비행 로그가 없습니다.</p>';
+        elements.summaryDetailModal.classList.add("active");
+        return;
+    }
+
+    // 항공사별 데이터 집계
+    const airlineGroups = {};
+    flights.forEach(f => {
+        const airline = (f.airline || "기타 항공사").trim();
+        if (!airlineGroups[airline]) {
+            airlineGroups[airline] = {
+                count: 0,
+                routes: {}
+            };
+        }
+        airlineGroups[airline].count++;
+        
+        const dep = (f.departureAirport || "").trim().toUpperCase();
+        const arr = (f.arrivalAirport || "").trim().toUpperCase();
+        if (dep && arr) {
+            const routeKey = `${dep} ➔ ${arr}`;
+            airlineGroups[airline].routes[routeKey] = (airlineGroups[airline].routes[routeKey] || 0) + 1;
+        }
+    });
+
+    // 탑승 횟수 순으로 정렬
+    const sortedAirlines = Object.entries(airlineGroups)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.count - a.count);
+
+    let html = '<div class="summary-detail-list">';
+    sortedAirlines.forEach(item => {
+        const sortedRoutes = Object.entries(item.routes)
+            .sort((a, b) => b[1] - a[1]); // 해당 항공사에서 많이 탄 노선 순
+
+        let routesHTML = '';
+        if (sortedRoutes.length > 0) {
+            sortedRoutes.forEach(([route, count]) => {
+                const parts = route.split(" ➔ ");
+                routesHTML += `
+                    <div class="summary-detail-route-item">
+                        <span class="route-text-block">${parts[0]}<span class="route-arrow">➔</span>${parts[1]}</span>
+                        <span class="route-count-badge">${count}회</span>
+                    </div>
+                `;
+            });
+        } else {
+            routesHTML = '<p style="font-size:0.75rem; color:var(--text-muted); margin:0;">기록된 노선 정보가 없습니다.</p>';
+        }
+
+        html += `
+            <div class="summary-detail-group-card">
+                <div class="summary-detail-group-header">
+                    <span class="summary-detail-group-title">${item.name}</span>
+                    <span class="summary-detail-group-badge">총 ${item.count}회 탑승</span>
+                </div>
+                <div class="summary-detail-routes-list">
+                    ${routesHTML}
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    elements.summaryDetailBody.innerHTML = html;
+    elements.summaryDetailModal.classList.add("active");
+}
+
+/**
+ * 탑승 기종 상세 목록 모달을 여는 함수
+ */
+function openTypesDetailModal() {
+    const flights = state.flights;
+    elements.summaryDetailTitle.textContent = "🏢 탑승 기종 상세 정보";
+
+    if (flights.length === 0) {
+        elements.summaryDetailBody.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px 0; font-size:0.9rem;">기록된 비행 로그가 없습니다.</p>';
+        elements.summaryDetailModal.classList.add("active");
+        return;
+    }
+
+    // 기종별 데이터 집계
+    const typeGroups = {};
+    flights.forEach(f => {
+        const typeName = (f.aircraftTypeName || "기타 기종").trim();
+        const typeId = (f.aircraftTypeId || "").trim();
+        
+        if (!typeGroups[typeName]) {
+            typeGroups[typeName] = {
+                count: 0,
+                typeId: typeId
+            };
+        }
+        typeGroups[typeName].count++;
+        if (typeId && !typeGroups[typeName].typeId) {
+            typeGroups[typeName].typeId = typeId;
+        }
+    });
+
+    // 탑승 횟수 순으로 정렬
+    const sortedTypes = Object.entries(typeGroups)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.count - a.count);
+
+    // 실행 환경 분기 처리
+    const isLocal = window.location.protocol === 'file:' || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+    const aeroTypeBaseUrl = isLocal 
+        ? '../Aerotype/index.html' 
+        : 'https://aerotype-iota.vercel.app/';
+
+    let html = '<div class="summary-detail-list">';
+    sortedTypes.forEach(item => {
+        let badgeHTML = '';
+        if (item.typeId) {
+            badgeHTML = `
+                <a href="${aeroTypeBaseUrl}?id=${item.typeId}" target="_blank" class="aerotype-badge linked" style="margin: 0; padding: 6px 12px;" title="클릭하여 AeroType 사전에서 상세 스펙 보기">
+                    AeroType 도감 연동
+                </a>
+            `;
+        } else {
+            badgeHTML = `<span style="font-size: 0.72rem; color: var(--text-muted);">도감 연동 불가</span>`;
+        }
+
+        html += `
+            <div class="summary-detail-group-card">
+                <div class="summary-detail-type-row">
+                    <div>
+                        <span class="summary-detail-group-title" style="display:block;">${item.name}</span>
+                        <span class="summary-detail-group-badge" style="margin-top: 6px; display:inline-block;">총 ${item.count}회 탑승</span>
+                    </div>
+                    ${badgeHTML}
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    elements.summaryDetailBody.innerHTML = html;
+    elements.summaryDetailModal.classList.add("active");
+}
+
+/**
+ * 요약 상세 모달을 닫는 함수
+ */
+function closeSummaryDetailModal() {
+    elements.summaryDetailModal.classList.remove("active");
 }
 
 // 브라우저 로딩 완료 시 앱 실행

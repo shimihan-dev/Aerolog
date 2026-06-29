@@ -1329,3 +1329,126 @@ body {
         padding: 20px;
     }
 }
+
+/* ==========================================================================
+   탑승 요약 대시보드 카드 클릭 연동 스타일
+   ========================================================================== */
+#stat-total-airlines, #stat-total-types {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+#stat-total-airlines:hover, #stat-total-types:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-md);
+}
+
+.summary-detail-content {
+    max-width: 500px;
+    width: 90%;
+}
+
+.summary-detail-body {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-top: 16px;
+    padding-right: 6px;
+}
+
+/* 스크롤바 커스텀 */
+.summary-detail-body::-webkit-scrollbar {
+    width: 6px;
+}
+.summary-detail-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.summary-detail-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* 요약 정보 리스트 스타일링 */
+.summary-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.summary-detail-group-card {
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+}
+
+.summary-detail-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.summary-detail-group-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.summary-detail-group-badge {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+}
+
+/* 기종 리스트 내의 AeroType 연동 단추 정렬 */
+.summary-detail-type-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-detail-routes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-detail-route-item {
+    font-size: 0.82rem;
+    color: var(--text-medium);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.route-text-block {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.route-arrow {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0 6px;
+    display: inline-block;
+}
+
+.route-count-badge {
+    background-color: #e2e8f0;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
