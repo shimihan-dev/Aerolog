@@ -601,9 +601,27 @@ body {
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    gap: 16px;
     border-top: 1px solid #f1f5f9;
     padding-top: 12px;
     margin-top: auto;
+}
+
+.btn-edit {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+
+.btn-edit:hover {
+    color: var(--color-accent);
 }
 
 .btn-delete {
@@ -623,7 +641,7 @@ body {
     color: var(--color-danger);
 }
 
-.delete-icon {
+.edit-icon, .delete-icon {
     width: 16px;
     height: 16px;
 }

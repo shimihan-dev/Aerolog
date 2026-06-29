@@ -7,7 +7,8 @@
 // 애플리케이션 상태 (State) 관리 객체
 const state = {
     flights: [],         // 현재 비행 기록 배열
-    searchQuery: ""      // 현재 실시간 검색어
+    searchQuery: "",     // 현재 실시간 검색어
+    editingFlightId: null // 현재 수정 중인 비행 기록 ID
 };
 
 // DOM 요소 참조 (HTML 요소를 자바스크립트로 조작하기 위함)
@@ -190,6 +191,10 @@ function createFlightCardHTML(flight) {
             <div class="ticket-memo">
                 <p class="memo-text">${memoContent}</p>
                 <div class="ticket-actions">
+                    <button class="btn-edit" onclick="editFlight('${flight.id}')" title="비행 기록 수정">
+                        <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        수정
+                    </button>
                     <button class="btn-delete" onclick="deleteFlight('${flight.id}')" title="비행 기록 삭제">
                         <svg class="delete-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                         삭제
@@ -307,23 +312,42 @@ function handleAddFlightSubmit(event) {
     const seat = document.getElementById("flight-seat").value.trim().toUpperCase();
     const memo = document.getElementById("flight-memo").value;
 
-    // 간단한 객체 빌더 패턴 적용
-    const newFlight = {
-        id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
-        date,
-        airline,
-        flightNumber,
-        registration,
-        departureAirport,
-        arrivalAirport,
-        aircraftTypeName,
-        aircraftTypeId,
-        seat,
-        memo
-    };
-
-    // 최신 비행 로그가 목록 맨 위에 가도록 배열 맨 앞에 추가합니다.
-    state.flights.unshift(newFlight);
+    if (state.editingFlightId) {
+        // [수정 모드] 기존 비행 정보 업데이트
+        const flightIndex = state.flights.findIndex(f => f.id === state.editingFlightId);
+        if (flightIndex > -1) {
+            state.flights[flightIndex] = {
+                ...state.flights[flightIndex],
+                date,
+                airline,
+                flightNumber,
+                registration,
+                departureAirport,
+                arrivalAirport,
+                aircraftTypeName,
+                aircraftTypeId,
+                seat,
+                memo
+            };
+        }
+        state.editingFlightId = null; // 수정 모드 해제
+    } else {
+        // [신규 모드] 새로운 비행 기록 추가
+        const newFlight = {
+            id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
+            date,
+            airline,
+            flightNumber,
+            registration,
+            departureAirport,
+            arrivalAirport,
+            aircraftTypeName,
+            aircraftTypeId,
+            seat,
+            memo
+        };
+        state.flights.unshift(newFlight);
+    }
 
     // 로컬스토리지에 저장 및 화면 재렌더링
     saveFlightsToStorage();
@@ -333,6 +357,40 @@ function handleAddFlightSubmit(event) {
     elements.addFlightForm.reset();
     closeModal();
 }
+
+/**
+ * 비행 로그 수정을 위해 기존 데이터를 폼에 로드하는 함수
+ */
+function editFlight(id) {
+    const flight = state.flights.find(f => f.id === id);
+    if (!flight) return;
+
+    // 폼 필드 채우기
+    document.getElementById("flight-date").value = flight.date;
+    document.getElementById("flight-airline").value = flight.airline;
+    document.getElementById("flight-number").value = flight.flightNumber;
+    document.getElementById("flight-registration").value = flight.registration || "";
+    document.getElementById("flight-dep").value = flight.departureAirport;
+    document.getElementById("flight-arr").value = flight.arrivalAirport;
+    document.getElementById("flight-typename").value = flight.aircraftTypeName;
+    document.getElementById("flight-typeid").value = flight.aircraftTypeId || "";
+    document.getElementById("flight-seat").value = flight.seat || "";
+    document.getElementById("flight-memo").value = flight.memo || "";
+
+    // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경
+    document.getElementById("modal-title").textContent = "비행 기록 수정";
+    document.getElementById("submit-form-btn").textContent = "수정완료";
+
+    // 에디팅 타겟 세팅 및 모달 오픈
+    state.editingFlightId = id;
+    
+    // 모달 강제 오픈
+    elements.formModal.classList.add("active");
+    elements.lookupStatus.className = "lookup-status-msg hidden";
+    elements.lookupStatus.innerHTML = "";
+}
+
+window.editFlight = editFlight;
 
 /**
  * 비행 로그를 삭제하는 함수
@@ -359,6 +417,12 @@ window.deleteFlight = deleteFlight;
 
 function openModal() {
     elements.formModal.classList.add("active");
+    
+    // 모달 타이틀 및 등록 버튼 텍스트 초기 상태로 복구
+    document.getElementById("modal-title").textContent = "새로운 비행 기록 등록";
+    document.getElementById("submit-form-btn").textContent = "등록하기";
+    state.editingFlightId = null;
+
     // 모달을 열었을 때 자동으로 탑승일에 현재 날짜가 기본값으로 선택되도록 센스있는 편의 기능 추가
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("flight-date").value = today;
@@ -370,6 +434,11 @@ function openModal() {
 
 function closeModal() {
     elements.formModal.classList.remove("active");
+    
+    // 수정 모드 상태 초기화
+    state.editingFlightId = null;
+    elements.addFlightForm.reset();
+
     // 편명 조회 상태 초기화
     elements.lookupStatus.className = "lookup-status-msg hidden";
     elements.lookupStatus.innerHTML = "";
