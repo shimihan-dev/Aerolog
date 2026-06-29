@@ -25,7 +25,11 @@ const elements = {
     formModal: document.getElementById("form-modal"),
     addFlightForm: document.getElementById("add-flight-form"),
     lookupBtn: document.getElementById("btn-lookup-flight"),
-    lookupStatus: document.getElementById("lookup-status")
+    lookupStatus: document.getElementById("lookup-status"),
+    statsModal: document.getElementById("stats-modal"),
+    openStatsBtn: document.getElementById("open-stats-btn"),
+    closeStatsBtn: document.getElementById("close-stats-btn"),
+    closeStatsBtnX: document.getElementById("close-stats-btn-x")
 };
 
 // ==========================================================================
@@ -336,6 +340,17 @@ function setupEventListeners() {
 
     // 4. 편명 자동 조회 이벤트
     elements.lookupBtn.addEventListener("click", handleFlightLookup);
+
+    // 5. 상세 통계 모달 열기/닫기 이벤트
+    elements.openStatsBtn.addEventListener("click", openStatsModal);
+    elements.closeStatsBtn.addEventListener("click", closeStatsModal);
+    elements.closeStatsBtnX.addEventListener("click", closeStatsModal);
+
+    elements.statsModal.addEventListener("click", (e) => {
+        if (e.target === elements.statsModal) {
+            closeStatsModal();
+        }
+    });
 }
 
 // Aviationstack IATA 기종 코드 <=> AeroType 기종 정보 매핑 사전
@@ -473,6 +488,211 @@ async function handleFlightLookup() {
         // 버튼 상태 원복
         elements.lookupBtn.disabled = false;
     }
+}
+
+/**
+ * 상세 통계 모달을 여는 함수
+ */
+function openStatsModal() {
+    elements.statsModal.classList.add("active");
+    calculateFlightStats();
+}
+
+/**
+ * 상세 통계 모달을 닫는 함수
+ */
+function closeStatsModal() {
+    elements.statsModal.classList.remove("active");
+}
+
+/**
+ * 현재 저장된 비행 기록을 집계하여 통계 대시보드를 렌더링하는 함수
+ */
+function calculateFlightStats() {
+    const flights = state.flights;
+    const totalFlights = flights.length;
+
+    // 1. 총 비행 횟수 바인딩
+    document.getElementById("stats-total-flights").textContent = totalFlights;
+
+    if (totalFlights === 0) {
+        document.getElementById("stats-total-routes").textContent = "0";
+        document.getElementById("stats-link-ratio").textContent = "0%";
+        document.getElementById("airlines-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;">등록된 비행이 없습니다.</p>';
+        document.getElementById("airports-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;">등록된 비행이 없습니다.</p>';
+        
+        // 제조사 초기화
+        document.getElementById("airbus-percentage").textContent = "0%";
+        document.getElementById("boeing-percentage").textContent = "0%";
+        document.getElementById("ratio-bar-airbus").style.width = "0%";
+        document.getElementById("ratio-bar-boeing").style.width = "0%";
+        document.getElementById("airbus-count-label").textContent = "0회 탑승";
+        document.getElementById("boeing-count-label").textContent = "0회 탑승";
+
+        // 좌석 초기화
+        document.getElementById("seat-window-percent").textContent = "0%";
+        document.getElementById("seat-window-bar").style.width = "0%";
+        document.getElementById("seat-aisle-percent").textContent = "0%";
+        document.getElementById("seat-aisle-bar").style.width = "0%";
+        document.getElementById("seat-other-percent").textContent = "0%";
+        document.getElementById("seat-other-bar").style.width = "0%";
+        return;
+    }
+
+    // 2. 고유 노선 계산 (GMP-CJU 와 CJU-GMP는 양방향 왕복 노선으로 간주하여 동일 노선으로 집계)
+    const routesSet = new Set();
+    flights.forEach(f => {
+        const dep = (f.departureAirport || "").trim().toUpperCase();
+        const arr = (f.arrivalAirport || "").trim().toUpperCase();
+        if (dep && arr) {
+            const routeKey = dep < arr ? `${dep}-${arr}` : `${arr}-${dep}`;
+            routesSet.add(routeKey);
+        }
+    });
+    document.getElementById("stats-total-routes").textContent = routesSet.size;
+
+    // 3. AeroType 연동률 계산
+    const linkedFlightsCount = flights.filter(f => f.aircraftTypeId && f.aircraftTypeId.trim() !== "").length;
+    const linkRatio = Math.round((linkedFlightsCount / totalFlights) * 100);
+    document.getElementById("stats-link-ratio").textContent = `${linkRatio}%`;
+
+    // 4. 항공사 TOP 3 계산 및 렌더링
+    const airlineCounts = {};
+    flights.forEach(f => {
+        const name = (f.airline || "기타").trim();
+        airlineCounts[name] = (airlineCounts[name] || 0) + 1;
+    });
+
+    const sortedAirlines = Object.entries(airlineCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const topAirlines = sortedAirlines.slice(0, 3);
+    const airlinesContainer = document.getElementById("airlines-chart-container");
+    airlinesContainer.innerHTML = "";
+
+    const airlineColors = ["accent", "success", "warning"];
+
+    topAirlines.forEach((item, index) => {
+        const pct = Math.round((item.count / totalFlights) * 100);
+        const colorClass = airlineColors[index] || "accent";
+        const barHTML = `
+            <div class="chart-bar-item">
+                <div class="bar-label-row">
+                    <span>${index + 1}. ${item.name} (${item.count}회)</span>
+                    <span>${pct}%</span>
+                </div>
+                <div class="bar-wrapper">
+                    <div class="bar-fill ${colorClass}" style="width: ${pct}%"></div>
+                </div>
+            </div>
+        `;
+        airlinesContainer.insertAdjacentHTML("beforeend", barHTML);
+    });
+
+    // 5. 제조사 비율 계산 (Airbus vs Boeing)
+    let airbusCount = 0;
+    let boeingCount = 0;
+    let classifiedCount = 0;
+
+    flights.forEach(f => {
+        const typeName = (f.aircraftTypeName || "").trim().toLowerCase();
+        if (typeName.includes("airbus") || typeName.startsWith("a3") || typeName.startsWith("a2")) {
+            airbusCount++;
+            classifiedCount++;
+        } else if (typeName.includes("boeing") || typeName.startsWith("b7") || typeName.startsWith("b3")) {
+            boeingCount++;
+            classifiedCount++;
+        }
+    });
+
+    const airbusPercentage = classifiedCount > 0 ? Math.round((airbusCount / classifiedCount) * 100) : 50;
+    const boeingPercentage = classifiedCount > 0 ? Math.round((boeingCount / classifiedCount) * 100) : 50;
+
+    document.getElementById("airbus-percentage").textContent = `${classifiedCount > 0 ? airbusPercentage : 0}%`;
+    document.getElementById("boeing-percentage").textContent = `${classifiedCount > 0 ? boeingPercentage : 0}%`;
+    
+    // 차트 애니메이션 딜레이 렌더링
+    setTimeout(() => {
+        document.getElementById("ratio-bar-airbus").style.width = `${classifiedCount > 0 ? airbusPercentage : 0}%`;
+        document.getElementById("ratio-bar-boeing").style.width = `${classifiedCount > 0 ? boeingPercentage : 0}%`;
+    }, 100);
+    
+    document.getElementById("airbus-count-label").textContent = `${airbusCount}회 탑승`;
+    document.getElementById("boeing-count-label").textContent = `${boeingCount}회 탑승`;
+
+    // 6. 좌석 선호도 비율 계산 (A, F, K => Window | C, D, G, H => Aisle | B, E => Middle)
+    let windowSeats = 0;
+    let aisleSeats = 0;
+    let middleSeats = 0;
+    let totalSeatsWithInfo = 0;
+
+    flights.forEach(f => {
+        const seat = (f.seat || "").trim().toUpperCase();
+        if (seat) {
+            const lastChar = seat.slice(-1);
+            if (["A", "F", "K"].includes(lastChar)) {
+                windowSeats++;
+                totalSeatsWithInfo++;
+            } else if (["C", "D", "G", "H"].includes(lastChar)) {
+                aisleSeats++;
+                totalSeatsWithInfo++;
+            } else if (["B", "E", "J"].includes(lastChar)) {
+                middleSeats++;
+                totalSeatsWithInfo++;
+            }
+        }
+    });
+
+    if (totalSeatsWithInfo > 0) {
+        const winPct = Math.round((windowSeats / totalSeatsWithInfo) * 100);
+        const aislePct = Math.round((aisleSeats / totalSeatsWithInfo) * 100);
+        const otherPct = 100 - winPct - aislePct;
+
+        document.getElementById("seat-window-percent").textContent = `${winPct}%`;
+        document.getElementById("seat-aisle-percent").textContent = `${aislePct}%`;
+        document.getElementById("seat-other-percent").textContent = `${otherPct}%`;
+        
+        setTimeout(() => {
+            document.getElementById("seat-window-bar").style.width = `${winPct}%`;
+            document.getElementById("seat-aisle-bar").style.width = `${aislePct}%`;
+            document.getElementById("seat-other-bar").style.width = `${otherPct}%`;
+        }, 100);
+    } else {
+        document.getElementById("seat-window-percent").textContent = "0%";
+        document.getElementById("seat-window-bar").style.width = "0%";
+        document.getElementById("seat-aisle-percent").textContent = "0%";
+        document.getElementById("seat-aisle-bar").style.width = "0%";
+        document.getElementById("seat-other-percent").textContent = "0%";
+        document.getElementById("seat-other-bar").style.width = "0%";
+    }
+
+    // 7. 공항 방문 TOP 5 계산 (출발/도착 통합 집계)
+    const airportCounts = {};
+    flights.forEach(f => {
+        const dep = (f.departureAirport || "").trim().toUpperCase();
+        const arr = (f.arrivalAirport || "").trim().toUpperCase();
+        if (dep) airportCounts[dep] = (airportCounts[dep] || 0) + 1;
+        if (arr) airportCounts[arr] = (airportCounts[arr] || 0) + 1;
+    });
+
+    const sortedAirports = Object.entries(airportCounts)
+        .map(([code, count]) => ({ code, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const topAirports = sortedAirports.slice(0, 5);
+    const airportsContainer = document.getElementById("airports-chart-container");
+    airportsContainer.innerHTML = "";
+
+    topAirports.forEach(item => {
+        const chipHTML = `
+            <div class="airport-chip" title="총 ${item.count}회 이용">
+                <span>${item.code}</span>
+                <span class="airport-count">${item.count}회</span>
+            </div>
+        `;
+        airportsContainer.insertAdjacentHTML("beforeend", chipHTML);
+    });
 }
 
 // 브라우저 로딩 완료 시 앱 실행

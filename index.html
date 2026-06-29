@@ -62,10 +62,16 @@
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="search-input" placeholder="항공사, 편명, 기종, 등록부호, 공항 코드로 검색...">
             </div>
-            <button id="open-form-btn" class="btn btn-primary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                새로운 비행 추가
-            </button>
+            <div class="action-buttons">
+                <button id="open-stats-btn" class="btn btn-secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    상세 통계 보기
+                </button>
+                <button id="open-form-btn" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    새로운 비행 추가
+                </button>
+            </div>
         </div>
 
         <!-- 메인 콘텐츠 영역 (그리드) -->
@@ -84,6 +90,109 @@
                 <span>우측 상단의 '새로운 비행 추가' 버튼을 눌러 첫 기록을 등록해보세요!</span>
             </div>
         </main>
+    </div>
+
+    <!-- 상세 통계 모달 창 -->
+    <div id="stats-modal" class="modal-overlay">
+        <div class="modal-content stats-modal-content">
+            <div class="modal-header">
+                <h2>📊 나의 비행 통계 리포트</h2>
+                <button id="close-stats-btn-x" class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="stats-modal-body">
+                <!-- 1. 핵심 요약 카드 -->
+                <div class="stats-summary-grid">
+                    <div class="stats-sum-card purple">
+                        <span class="sum-title">총 비행 횟수</span>
+                        <span class="sum-value" id="stats-total-flights">0</span>
+                        <span class="sum-sub">기록된 전체 탑승 건수</span>
+                    </div>
+                    <div class="stats-sum-card blue">
+                        <span class="sum-title">고유 노선 수</span>
+                        <span class="sum-value" id="stats-total-routes">0</span>
+                        <span class="sum-sub">중복 없는 노선 조합</span>
+                    </div>
+                    <div class="stats-sum-card orange">
+                        <span class="sum-title">AeroType 연동률</span>
+                        <span class="sum-value" id="stats-link-ratio">0%</span>
+                        <span class="sum-sub">기종 도감 연동률</span>
+                    </div>
+                </div>
+
+                <!-- 2. 차트 그리드 -->
+                <div class="stats-charts-grid">
+                    <!-- 항공사 선호도 TOP 3 -->
+                    <div class="chart-card">
+                        <h3>✈️ 최다 탑승 항공사 TOP 3</h3>
+                        <div id="airlines-chart-container" class="chart-bars-list">
+                            <!-- script.js에서 동적 생성 -->
+                        </div>
+                    </div>
+
+                    <!-- 제조사 비율 (Airbus vs Boeing) -->
+                    <div class="chart-card">
+                        <h3>🏢 항공기 제조사 선호도</h3>
+                        <div class="manufacturer-ratio-container">
+                            <div class="ratio-labels">
+                                <span class="label-airbus">Airbus <strong id="airbus-percentage">0%</strong></span>
+                                <span class="label-boeing"><strong id="boeing-percentage">0%</strong> Boeing</span>
+                            </div>
+                            <div class="ratio-bar-wrapper">
+                                <div id="ratio-bar-airbus" class="ratio-bar airbus" style="width: 0%;"></div>
+                                <div id="ratio-bar-boeing" class="ratio-bar boeing" style="width: 0%;"></div>
+                            </div>
+                            <div class="ratio-counts">
+                                <span id="airbus-count-label">0회 탑승</span>
+                                <span id="boeing-count-label">0회 탑승</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 좌석 선호도 비율 -->
+                    <div class="chart-card">
+                        <h3>💺 좌석 유형 선호도</h3>
+                        <div class="seat-ratio-container">
+                            <div class="seat-types-list">
+                                <div class="seat-type-item">
+                                    <div class="seat-type-header">
+                                        <span>창가 좌석 (Window - A, F)</span>
+                                        <span id="seat-window-percent" class="percent-val">0%</span>
+                                    </div>
+                                    <div class="progress-bg"><div id="seat-window-bar" class="progress-fill green" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="seat-type-item">
+                                    <div class="seat-type-header">
+                                        <span>복도 좌석 (Aisle - C, D, G, H)</span>
+                                        <span id="seat-aisle-percent" class="percent-val">0%</span>
+                                    </div>
+                                    <div class="progress-bg"><div id="seat-aisle-bar" class="progress-fill blue" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="seat-type-item">
+                                    <div class="seat-type-header">
+                                        <span>중간/기타 좌석</span>
+                                        <span id="seat-other-percent" class="percent-val">0%</span>
+                                    </div>
+                                    <div class="progress-bg"><div id="seat-other-bar" class="progress-fill gray" style="width: 0%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 최다 방문 공항 TOP 5 -->
+                    <div class="chart-card">
+                        <h3>📍 최다 방문 공항 TOP 5 (출/도착 포함)</h3>
+                        <div id="airports-chart-container" class="airport-chips-list">
+                            <!-- script.js에서 동적 생성 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top: 24px;">
+                <button type="button" id="close-stats-btn" class="btn btn-primary" style="width: 100%;">확인</button>
+            </div>
+        </div>
     </div>
 
     <!-- 비행 기록 추가 모달 창 -->

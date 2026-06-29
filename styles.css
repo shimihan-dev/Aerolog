@@ -967,3 +967,345 @@ body {
     }
 }
 
+/* ==========================================================================
+   상세 통계 대시보드 모달 스타일
+   ========================================================================== */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.stats-modal-content {
+    max-width: 800px;
+    width: 90%;
+}
+
+.stats-modal-body {
+    max-height: 65vh;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-top: 16px;
+}
+
+/* 스크롤바 커스텀 */
+.stats-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.stats-modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.stats-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.stats-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 통계 요약 카드 */
+.stats-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stats-sum-card {
+    padding: 20px 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-sum-card::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.stats-sum-card.purple {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
+.stats-sum-card.blue {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+}
+
+.stats-sum-card.orange {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+}
+
+.sum-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+.sum-value {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 8px 0;
+    font-family: var(--font-outfit);
+}
+
+.sum-sub {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* 차트 그리드 */
+.stats-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-card {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.chart-card h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 10px;
+}
+
+/* 1. 프로그레스 바 목록 (항공사) */
+.chart-bars-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chart-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bar-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+
+.bar-wrapper {
+    height: 8px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0; /* JS에서 동적으로 채움 */
+    transition: width 1s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+
+.bar-fill.accent {
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+
+.bar-fill.success {
+    background: linear-gradient(90deg, #34d399, #059669);
+}
+
+.bar-fill.warning {
+    background: linear-gradient(90deg, #fbbf24, #d97706);
+}
+
+/* 2. 제조사 비율 */
+.manufacturer-ratio-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 8px;
+}
+
+.ratio-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.label-airbus {
+    color: #2563eb;
+}
+
+.label-boeing {
+    color: #dc2626;
+}
+
+.ratio-bar-wrapper {
+    display: flex;
+    height: 16px;
+    background-color: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.ratio-bar {
+    height: 100%;
+    transition: width 1s cubic-bezier(0.1, 0.8, 0.25, 1);
+    width: 0;
+}
+
+.ratio-bar.airbus {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.ratio-bar.boeing {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.ratio-counts {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* 3. 좌석 유형 */
+.seat-ratio-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.seat-types-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.seat-type-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.seat-type-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+
+.percent-val {
+    color: var(--text-dark);
+}
+
+.progress-bg {
+    height: 8px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0;
+    transition: width 1s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+
+.progress-fill.green {
+    background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.progress-fill.blue {
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+}
+
+.progress-fill.gray {
+    background: linear-gradient(90deg, #cbd5e1, #94a3b8);
+}
+
+/* 4. 공항 칩 목록 */
+.airport-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.airport-chip {
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+}
+
+.airport-chip:hover {
+    border-color: var(--color-accent);
+    background-color: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.airport-count {
+    background-color: #e2e8f0;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* 통계 반응형 미디어 쿼리 */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        margin-top: 8px;
+    }
+    
+    .stats-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .stats-charts-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .stats-modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+}
