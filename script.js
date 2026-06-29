@@ -481,6 +481,42 @@ function setupEventListeners() {
     });
 }
 
+// Aviationstack 영문 항공사명 => 한글 항공사명 매핑 사전
+const AIRLINE_KOREAN_MAP = {
+    "Korean Air": "대한항공",
+    "Asiana Airlines": "아시아나항공",
+    "Jeju Air": "제주항공",
+    "Jin Air": "진에어",
+    "Air Busan": "에어부산",
+    "Air Seoul": "에어서울",
+    "T'way Air": "티웨이항공",
+    "Tway Air": "티웨이항공",
+    "Eastar Jet": "이스타항공",
+    "Air Premia": "에어프레미아",
+    "Aero K": "에어로케이",
+    "Japan Airlines": "일본항공",
+    "All Nippon Airways": "전일본공수",
+    "Delta Air Lines": "델타항공",
+    "United Airlines": "유나이티드항공",
+    "American Airlines": "아메리칸항공",
+    "Singapore Airlines": "싱가포르항공",
+    "Cathay Pacific": "캐세이퍼시픽항공",
+    "Emirates": "에미레이트항공",
+    "Qatar Airways": "카타르항공",
+    "China Southern Airlines": "중국남방항공",
+    "China Eastern Airlines": "중국동방항공",
+    "Air China": "중국국제항공",
+    "VietJet Air": "비엣젯항공",
+    "Vietnam Airlines": "베트남항공",
+    "Thai Airways": "타이항공",
+    "Lufthansa": "루프트한자",
+    "Air France": "에어프랑스",
+    "KLM": "KLM 네덜란드 항공",
+    "British Airways": "영국항공",
+    "Peach Aviation": "피치항공",
+    "Hong Kong Express": "홍콩익스프레스"
+};
+
 // Aviationstack IATA 기종 코드 <=> AeroType 기종 정보 매핑 사전
 const AIRCRAFT_IATA_MAP = {
     "A223": { name: "Airbus A220-300", id: "A220-300" },
@@ -565,7 +601,16 @@ async function handleFlightLookup() {
             // 가장 최근 비행 정보 선택
             const flightInfo = flightsData[0];
 
-            const airlineName = flightInfo.airline ? flightInfo.airline.name : "";
+            let airlineName = flightInfo.airline ? flightInfo.airline.name : "";
+            
+            // 영어 항공사명을 사전 매핑을 통해 한글명으로 치환
+            if (airlineName) {
+                const mappedName = AIRLINE_KOREAN_MAP[airlineName.trim()];
+                if (mappedName) {
+                    airlineName = mappedName;
+                }
+            }
+
             const depIata = flightInfo.departure ? flightInfo.departure.iata : "";
             const arrIata = flightInfo.arrival ? flightInfo.arrival.iata : "";
             const registration = flightInfo.aircraft ? flightInfo.aircraft.registration : "";
