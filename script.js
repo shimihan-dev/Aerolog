@@ -268,13 +268,6 @@ function createFlightCardHTML(flight) {
             <div class="ticket-memo">
                 <p class="memo-text">${memoContent}</p>
 
-                ${flight.aircraftImageUrl ? `
-                <!-- 실제 항공기 기종 사진 영역 -->
-                <div class="ticket-image-container">
-                    <img src="${flight.aircraftImageUrl}" referrerpolicy="no-referrer" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
-                </div>
-                ` : ''}
-
                 <div class="ticket-actions">
                     <button class="btn-edit" onclick="editFlight('${flight.id}')" title="비행 기록 수정">
                         <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -404,7 +397,6 @@ function handleAddFlightSubmit(event) {
     const seatClass = document.getElementById("flight-seat-class").value;
     const aircraftAge = document.getElementById("flight-aircraft-age").value.trim();
     const modeSHex = document.getElementById("flight-modes-hex").value.trim().toUpperCase();
-    const aircraftImageUrl = document.getElementById("flight-image-url").value.trim();
     const memo = document.getElementById("flight-memo").value;
 
     if (state.editingFlightId) {
@@ -426,7 +418,6 @@ function handleAddFlightSubmit(event) {
                 seatClass,
                 aircraftAge,
                 modeSHex,
-                aircraftImageUrl,
                 memo
             };
         }
@@ -448,7 +439,6 @@ function handleAddFlightSubmit(event) {
             seatClass,
             aircraftAge,
             modeSHex,
-            aircraftImageUrl,
             memo
         };
         state.flights.unshift(newFlight);
@@ -484,7 +474,6 @@ function editFlight(id) {
     document.getElementById("flight-seat-class").value = flight.seatClass || "";
     document.getElementById("flight-aircraft-age").value = flight.aircraftAge || "";
     document.getElementById("flight-modes-hex").value = flight.modeSHex || "";
-    document.getElementById("flight-image-url").value = flight.aircraftImageUrl || "";
     document.getElementById("flight-memo").value = flight.memo || "";
 
     // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경
@@ -864,10 +853,9 @@ async function handleFlightLookup() {
                 document.getElementById("flight-typename").value = aircraftName || "";
                 document.getElementById("flight-typeid").value = aircraftId || "";
                 
-                // 기령, Mode-S, 이미지 URL 초기화 (Aviationstack 미지원)
+                // 기령, Mode-S 초기화 (Aviationstack 미지원)
                 document.getElementById("flight-aircraft-age").value = "";
                 document.getElementById("flight-modes-hex").value = "";
-                document.getElementById("flight-image-url").value = "";
 
                 // 성공 피드백
                 elements.lookupStatus.className = "lookup-status-msg success";
@@ -923,7 +911,6 @@ async function handleFlightLookup() {
                 let finalAircraftId = deriveAircraftTypeId(aircraftModel);
                 let ageYears = "";
                 let hexIcao = "";
-                let aircraftImageUrl = "";
 
                 if (flightInfo.aircraft && flightInfo.aircraft.model) {
                     const cleanModel = flightInfo.aircraft.model.replace(/\s+/g, '').toUpperCase();
@@ -959,30 +946,15 @@ async function handleFlightLookup() {
                     } catch (aircraftError) {
                         console.error("Aircraft detail fetch error:", aircraftError);
                     }
-
-                    // 3단계: 기체 실제 사진 수집 (Planespotters Public API - 무료)
-                    try {
-                        const imgUrl = `https://api.planespotters.net/pub/photos/reg/${registration}`;
-                        const imgResponse = await fetch(imgUrl);
-                        if (imgResponse.ok) {
-                            const imgData = await imgResponse.json();
-                            if (imgData && imgData.photos && imgData.photos.length > 0) {
-                                aircraftImageUrl = imgData.photos[0].thumbnail_large.src;
-                            }
-                        }
-                    } catch (imgError) {
-                        console.error("Aircraft image fetch error:", imgError);
-                    }
                 }
 
                 document.getElementById("flight-typename").value = finalAircraftName || "";
                 document.getElementById("flight-typeid").value = finalAircraftId || "";
                 document.getElementById("flight-aircraft-age").value = ageYears;
                 document.getElementById("flight-modes-hex").value = hexIcao;
-                document.getElementById("flight-image-url").value = aircraftImageUrl;
 
                 elements.lookupStatus.className = "lookup-status-msg success";
-                elements.lookupStatus.textContent = "✓ 실시간 비행 정보, 기체 사양 및 실제 기체 사진을 모두 연동했습니다.";
+                elements.lookupStatus.textContent = "✓ 실시간 비행 정보 및 기체 세부 사양을 성공적으로 조회했습니다.";
             } else {
                 throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
             }
