@@ -759,6 +759,27 @@ async function handleFlightLookup() {
         return;
     }
 
+    // AeroDataBox API의 조회 날짜 범위 제약 조건 검증 (과거 365일 ~ 미래 10일)
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const targetDate = new Date(flightDate);
+    targetDate.setHours(0,0,0,0);
+    const timeDiff = today - targetDate;
+    const diffDays = timeDiff / (1000 * 60 * 60 * 24);
+
+    if (diffDays > 365) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ AeroDataBox API는 최근 1년(365일) 이내의 탑승일만 조회를 지원합니다. 그보다 오래된 기록은 수동으로 기입해 주세요.";
+        document.getElementById("flight-date").focus();
+        return;
+    }
+    if (diffDays < -10) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ 미래 항공편은 오늘 기준 최대 10일 후의 일정까지만 조회가 가능합니다.";
+        document.getElementById("flight-date").focus();
+        return;
+    }
+
     // 2. 조회 중 상태 UI 변경 (버튼 비활성화, 스피너 렌더링)
     elements.lookupBtn.disabled = true;
     elements.lookupStatus.className = "lookup-status-msg loading";
