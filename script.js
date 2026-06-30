@@ -644,6 +644,7 @@ const AIRLINE_KOREAN_MAP = {
     "Air Seoul": "에어서울",
     "T'way Air": "티웨이항공",
     "Tway Air": "티웨이항공",
+    "T'Way Air": "티웨이항공",
     "Eastar Jet": "이스타항공",
     "Air Premia": "에어프레미아",
     "Aero K": "에어로케이",
@@ -659,6 +660,8 @@ const AIRLINE_KOREAN_MAP = {
     "China Southern Airlines": "중국남방항공",
     "China Eastern Airlines": "중국동방항공",
     "Air China": "중국국제항공",
+    "Shanghai Airlines": "상하이항공",
+    "Hong Kong Airlines": "홍콩항공",
     "China Airlines": "중화항공",
     "Eva Air": "에바항공",
     "Starlux Airlines": "스타룩스항공",
@@ -766,9 +769,9 @@ async function handleFlightLookup() {
 
     // AeroDataBox API의 조회 날짜 범위 제약 조건 검증 (과거 365일 ~ 미래 10일)
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     const targetDate = new Date(flightDate);
-    targetDate.setHours(0,0,0,0);
+    targetDate.setHours(0, 0, 0, 0);
     const timeDiff = today - targetDate;
     const diffDays = timeDiff / (1000 * 60 * 60 * 24);
 
@@ -780,7 +783,7 @@ async function handleFlightLookup() {
     // 2. 조회 중 상태 UI 변경 (버튼 비활성화, 스피너 렌더링)
     elements.lookupBtn.disabled = true;
     elements.lookupStatus.className = "lookup-status-msg loading";
-    
+
     if (useFallbackApi) {
         elements.lookupStatus.innerHTML = `<span class="spinner"></span> 1년 이전(또는 먼 미래) 비행편이므로 기본 노선 정보(Aviationstack)를 조회 중입니다...`;
     } else {
@@ -803,7 +806,7 @@ async function handleFlightLookup() {
             const apiKey = "8c61bbc923c688a8a943e84b55284d1d";
             const apiUrl = `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&flight_iata=${flightNum}`;
             const response = await fetch(apiUrl);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP 에러! 상태코드: ${response.status}`);
             }
@@ -852,7 +855,7 @@ async function handleFlightLookup() {
 
                 document.getElementById("flight-typename").value = aircraftName || "";
                 document.getElementById("flight-typeid").value = aircraftId || "";
-                
+
                 // 기령, Mode-S 초기화 (Aviationstack 미지원)
                 document.getElementById("flight-aircraft-age").value = "";
                 document.getElementById("flight-modes-hex").value = "";
@@ -868,7 +871,7 @@ async function handleFlightLookup() {
             // 1단계: 편명 + 날짜 기반 항공편 실시간 상태 조회
             const flightUrl = `https://aerodatabox.p.rapidapi.com/flights/number/${flightNum}/${flightDate}`;
             const flightResponse = await fetch(flightUrl, { headers });
-            
+
             if (!flightResponse.ok) {
                 if (flightResponse.status === 404) {
                     throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
@@ -880,7 +883,7 @@ async function handleFlightLookup() {
                     if (errJson && errJson.message) {
                         errMsg += ` - ${errJson.message}`;
                     }
-                } catch (e) {}
+                } catch (e) { }
                 throw new Error(errMsg);
             }
 
@@ -933,7 +936,7 @@ async function handleFlightLookup() {
                             const aircraftData = await aircraftResponse.json();
                             ageYears = aircraftData.ageYears !== undefined ? aircraftData.ageYears : "";
                             hexIcao = aircraftData.hexIcao || "";
-                            
+
                             if (aircraftData.typeName) {
                                 finalAircraftName = aircraftData.typeName;
                             }
@@ -962,7 +965,7 @@ async function handleFlightLookup() {
     } catch (error) {
         console.error("Flight Lookup General Error:", error);
         elements.lookupStatus.className = "lookup-status-msg error";
-        
+
         if (error.message && error.message.includes("Failed to fetch")) {
             elements.lookupStatus.innerHTML = `⚠ <strong>보안 차단:</strong> HTTPS 배포 환경에서는 1년 이전 비행편의 기본 정보 조회(Aviationstack)가 차단됩니다. 로컬 환경에서 실행하시거나 수동 기입을 이용해 주세요.`;
         } else {
