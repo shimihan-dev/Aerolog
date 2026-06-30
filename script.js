@@ -45,7 +45,11 @@ const elements = {
     closeSummaryDetailBtn: document.getElementById("close-summary-detail-btn"),
     closeSummaryDetailBtnX: document.getElementById("close-summary-detail-btn-x"),
     statAirlinesCard: document.getElementById("stat-total-airlines"),
-    statTypesCard: document.getElementById("stat-total-types")
+    statTypesCard: document.getElementById("stat-total-types"),
+    
+    // 기체 세부 정보용 입력창 추가
+    aircraftAgeInput: document.getElementById("flight-aircraft-age"),
+    modesHexInput: document.getElementById("flight-modes-hex")
 };
 
 // ==========================================================================
@@ -232,7 +236,17 @@ function createFlightCardHTML(flight) {
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">등록부호</span>
-                    <span class="detail-value number-font">${flight.registration ? flight.registration : '-'}</span>
+                    <span class="detail-value number-font" style="line-height: 1.25;">
+                        ${flight.registration ? flight.registration : '-'}
+                        ${(flight.aircraftAge || flight.modeSHex) ? `
+                            <span style="font-size: 0.72rem; color: var(--text-medium); display: block; font-weight: 500; margin-top: 3px; font-family: var(--font-sans);">
+                                ${[
+                                    flight.aircraftAge ? `기령: ${flight.aircraftAge}년` : '',
+                                    flight.modeSHex ? `Hex: ${flight.modeSHex}` : ''
+                                ].filter(Boolean).join(' | ')}
+                            </span>
+                        ` : ''}
+                    </span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">좌석 정보</span>
@@ -380,6 +394,8 @@ function handleAddFlightSubmit(event) {
     const seat = document.getElementById("flight-seat").value.trim().toUpperCase();
     const seatPosition = document.getElementById("flight-seat-position").value;
     const seatClass = document.getElementById("flight-seat-class").value;
+    const aircraftAge = document.getElementById("flight-aircraft-age").value.trim();
+    const modeSHex = document.getElementById("flight-modes-hex").value.trim().toUpperCase();
     const memo = document.getElementById("flight-memo").value;
 
     if (state.editingFlightId) {
@@ -399,6 +415,8 @@ function handleAddFlightSubmit(event) {
                 seat,
                 seatPosition,
                 seatClass,
+                aircraftAge,
+                modeSHex,
                 memo
             };
         }
@@ -418,6 +436,8 @@ function handleAddFlightSubmit(event) {
             seat,
             seatPosition,
             seatClass,
+            aircraftAge,
+            modeSHex,
             memo
         };
         state.flights.unshift(newFlight);
@@ -451,6 +471,8 @@ function editFlight(id) {
     document.getElementById("flight-seat").value = flight.seat || "";
     document.getElementById("flight-seat-position").value = flight.seatPosition || "";
     document.getElementById("flight-seat-class").value = flight.seatClass || "";
+    document.getElementById("flight-aircraft-age").value = flight.aircraftAge || "";
+    document.getElementById("flight-modes-hex").value = flight.modeSHex || "";
     document.getElementById("flight-memo").value = flight.memo || "";
 
     // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경
@@ -644,7 +666,11 @@ const AIRLINE_KOREAN_MAP = {
     "KLM": "KLM 네덜란드 항공",
     "British Airways": "영국항공",
     "Peach Aviation": "피치항공",
-    "Hong Kong Express": "홍콩익스프레스"
+    "Hong Kong Express": "홍콩익스프레스",
+    "JAL": "일본항공",
+    "ANA": "전일본공수",
+    "KAL": "대한항공",
+    "AAR": "아시아나항공"
 };
 
 // Aviationstack IATA 기종 코드 <=> AeroType 기종 정보 매핑 사전
@@ -692,15 +718,25 @@ const AIRCRAFT_IATA_MAP = {
 /**
  * 편명을 실시간 API(Aviationstack)에서 조회하여 정보를 채워넣는 함수
  */
+/**
+ * 편명을 실시간 API(AeroDataBox)에서 조회하여 정보를 채워넣는 함수
+ */
 async function handleFlightLookup() {
     const flightNumInput = document.getElementById("flight-number");
     const flightNum = flightNumInput.value.trim().toUpperCase().replace(/\s+/g, ''); // 공백 제거
+    const flightDate = document.getElementById("flight-date").value;
 
-    // 1. 공백 검증
+    // 1. 공백 및 날짜 검증
     if (!flightNum) {
         elements.lookupStatus.className = "lookup-status-msg error";
         elements.lookupStatus.textContent = "⚠ 편명을 입력한 후 조회를 눌러주세요.";
         flightNumInput.focus();
+        return;
+    }
+    if (!flightDate) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ 편명 조회를 위해 먼저 탑승일을 입력해 주세요.";
+        document.getElementById("flight-date").focus();
         return;
     }
 
@@ -709,29 +745,31 @@ async function handleFlightLookup() {
     elements.lookupStatus.className = "lookup-status-msg loading";
     elements.lookupStatus.innerHTML = `<span class="spinner"></span> 실시간 정보를 조회 중입니다...`;
 
-    // 3. API 호출 설정
-    const apiKey = "8c61bbc923c688a8a943e84b55284d1d";
-    const apiUrl = `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&flight_iata=${flightNum}`;
+    // 3. API 설정
+    const rapidApiKey = '1f363a64a1msha4534ae9ed74452p1e7450jsnc9e9ad7f8641';
+    const rapidApiHost = 'aerodatabox.p.rapidapi.com';
+    const headers = {
+        'X-RapidAPI-Key': rapidApiKey,
+        'X-RapidAPI-Host': rapidApiHost
+    };
 
     try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP 에러! 상태코드: ${response.status}`);
+        // 1단계: 편명 + 날짜 기반 항공편 실시간 상태 조회
+        const flightUrl = `https://aerodatabox.p.rapidapi.com/flights/number/${flightNum}/${flightDate}`;
+        const flightResponse = await fetch(flightUrl, { headers });
+        
+        if (!flightResponse.ok) {
+            if (flightResponse.status === 404) {
+                throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
+            }
+            throw new Error(`항공편 조회 실패 (상태코드: ${flightResponse.status})`);
         }
 
-        const result = await response.json();
+        const flightsData = await flightResponse.json();
 
-        // API 내부 에러 핸들링 (예: API 키 유효성 에러 등)
-        if (result.error) {
-            throw new Error(result.error.message || result.error.info || "API 에러");
-        }
-
-        const flightsData = result.data;
-
-        // 4. 응답 데이터 검증 및 폼 바인딩
         if (flightsData && flightsData.length > 0) {
-            // 가능하면 항공기 정보(등록부호 혹은 IATA 기종 코드)가 누락되지 않고 온전히 채워진 데이터를 우선적으로 찾아 바인딩합니다.
-            const flightInfo = flightsData.find(f => f.aircraft && (f.aircraft.registration || f.aircraft.iata)) || flightsData[0];
+            // 공동운항이 아닌 실제 운항 항공편을 우선 선별
+            const flightInfo = flightsData.find(f => f.codeshareStatus === "IsOperator" || f.codeshareStatus === "IsCommercialOperator") || flightsData[0];
 
             let airlineName = flightInfo.airline ? flightInfo.airline.name : "";
             
@@ -743,52 +781,82 @@ async function handleFlightLookup() {
                 }
             }
 
-            const depIata = flightInfo.departure ? flightInfo.departure.iata : "";
-            const arrIata = flightInfo.arrival ? flightInfo.arrival.iata : "";
-            const registration = flightInfo.aircraft ? flightInfo.aircraft.registration : "";
-            const aircraftIata = flightInfo.aircraft ? flightInfo.aircraft.iata : "";
+            const depIata = flightInfo.departure && flightInfo.departure.airport ? flightInfo.departure.airport.iata : "";
+            const arrIata = flightInfo.arrival && flightInfo.arrival.airport ? flightInfo.arrival.airport.iata : "";
+            const registration = flightInfo.aircraft ? flightInfo.aircraft.reg : "";
+            const aircraftModel = flightInfo.aircraft ? flightInfo.aircraft.model : "";
 
-            // 폼 필드 자동 입력
+            // 폼 필드 기본 자동 입력
             document.getElementById("flight-airline").value = airlineName || "";
             document.getElementById("flight-dep").value = depIata || "";
             document.getElementById("flight-arr").value = arrIata || "";
             document.getElementById("flight-registration").value = registration || "";
 
-            // 기종 매핑 처리
-            let aircraftName = "";
-            let aircraftId = "";
+            let finalAircraftName = aircraftModel;
+            let finalAircraftId = deriveAircraftTypeId(aircraftModel);
+            let ageYears = "";
+            let hexIcao = "";
 
-            if (aircraftIata) {
-                const mapped = AIRCRAFT_IATA_MAP[aircraftIata.toUpperCase()];
+            // 기종 1차 매핑 (AIRCRAFT_IATA_MAP)
+            if (flightInfo.aircraft && flightInfo.aircraft.model) {
+                const cleanModel = flightInfo.aircraft.model.replace(/\s+/g, '').toUpperCase();
+                const mapped = AIRCRAFT_IATA_MAP[cleanModel];
                 if (mapped) {
-                    aircraftName = mapped.name;
-                    aircraftId = mapped.id;
-                } else {
-                    aircraftName = aircraftIata; // 매핑 테이블에 없는 경우 코드명 그대로 노출
+                    finalAircraftName = mapped.name;
+                    finalAircraftId = mapped.id;
                 }
             }
 
-            document.getElementById("flight-typename").value = aircraftName;
-            document.getElementById("flight-typeid").value = aircraftId;
+            // 등록번호가 있는 경우 2차 기체 정밀 상세조회 (1초 호출 제한 극복 딜레이 포함)
+            if (registration) {
+                elements.lookupStatus.innerHTML = `<span class="spinner"></span> 항공기 기체 상세 정보를 분석하고 있습니다 (1초 대기)...`;
+                
+                // 1.05초 대기
+                await new Promise(resolve => setTimeout(resolve, 1050));
+
+                try {
+                    const aircraftUrl = `https://aerodatabox.p.rapidapi.com/aircrafts/reg/${registration}`;
+                    const aircraftResponse = await fetch(aircraftUrl, { headers });
+                    if (aircraftResponse.ok) {
+                        const aircraftData = await aircraftResponse.json();
+                        
+                        // 정밀 기체 데이터 세팅
+                        ageYears = aircraftData.ageYears !== undefined ? aircraftData.ageYears : "";
+                        hexIcao = aircraftData.hexIcao || "";
+                        
+                        if (aircraftData.typeName) {
+                            finalAircraftName = aircraftData.typeName;
+                        }
+                        
+                        // AeroType 기종 ID 매핑 고도화
+                        if (aircraftData.modelCode) {
+                            finalAircraftId = deriveAircraftTypeId(aircraftData.modelCode);
+                        } else if (aircraftData.typeName) {
+                            finalAircraftId = deriveAircraftTypeId(aircraftData.typeName);
+                        }
+                    }
+                } catch (aircraftError) {
+                    console.error("Aircraft registration detail fetch error:", aircraftError);
+                    // 기체 상세 조회가 실패해도 기존 가져온 비행 데이터는 유지하고 진행
+                }
+            }
+
+            // 최종 폼 필드 입력
+            document.getElementById("flight-typename").value = finalAircraftName || "";
+            document.getElementById("flight-typeid").value = finalAircraftId || "";
+            document.getElementById("flight-aircraft-age").value = ageYears;
+            document.getElementById("flight-modes-hex").value = hexIcao;
 
             // 성공 피드백 메시지
             elements.lookupStatus.className = "lookup-status-msg success";
-            elements.lookupStatus.textContent = "✓ 실시간 비행 정보를 성공적으로 가져왔습니다.";
+            elements.lookupStatus.textContent = "✓ 실시간 비행 정보 및 기체 세부 사양을 성공적으로 조회했습니다.";
         } else {
-            // 데이터 없음
-            elements.lookupStatus.className = "lookup-status-msg error";
-            elements.lookupStatus.textContent = "⚠ 일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.";
+            throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
         }
     } catch (error) {
-        console.error("Flight Lookup Fetch Error:", error);
-        
+        console.error("AeroDataBox Flight Lookup Error:", error);
         elements.lookupStatus.className = "lookup-status-msg error";
-        // 브라우저의 혼합 콘텐츠 차단(HTTPS에서 HTTP 호출 차단)으로 인한 에러인지 감별
-        if (error.message && error.message.includes("Failed to fetch")) {
-            elements.lookupStatus.innerHTML = `⚠ <strong>보안 차단:</strong> HTTPS 환경에서는 무료 HTTP API 통신이 차단됩니다. 로컬 파일(file://)로 접속하여 확인해 주세요.`;
-        } else {
-            elements.lookupStatus.textContent = `⚠ 조회 중 에러 발생: ${error.message}`;
-        }
+        elements.lookupStatus.textContent = `⚠ ${error.message}`;
     } finally {
         // 버튼 상태 원복
         elements.lookupBtn.disabled = false;
