@@ -565,6 +565,11 @@ function setupEventListeners() {
     // 3. 비행 등록 폼 제출 이벤트
     elements.addFlightForm.addEventListener("submit", handleAddFlightSubmit);
 
+    // 기종명 수동 변경 시 hidden 기종 ID 초기화 (Aerotype 페이지 연결 불일치 오류 해결)
+    document.getElementById("flight-typename").addEventListener("input", () => {
+        document.getElementById("flight-typeid").value = "";
+    });
+
     // 4. 편명 자동 조회 이벤트
     elements.lookupBtn.addEventListener("click", handleFlightLookup);
 
