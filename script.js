@@ -726,16 +726,35 @@ async function handleFlightLookup() {
     const flightNum = flightNumInput.value.trim().toUpperCase().replace(/\s+/g, ''); // 공백 제거
     const flightDate = document.getElementById("flight-date").value;
 
-    // 1. 공백 및 날짜 검증
+    // 1. 공백 및 규격 검증
     if (!flightNum) {
         elements.lookupStatus.className = "lookup-status-msg error";
         elements.lookupStatus.textContent = "⚠ 편명을 입력한 후 조회를 눌러주세요.";
         flightNumInput.focus();
         return;
     }
+    
+    // 편명 포맷 검증 (예: JL91, KE1101 등 항공사 코드 2-3자 + 숫자 1-4자)
+    const flightNumRegex = /^[A-Z0-9]{2,3}\d{1,4}$/;
+    if (!flightNumRegex.test(flightNum)) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ 올바른 편명 형식을 입력해 주세요. (예: JL91, KE1101)";
+        flightNumInput.focus();
+        return;
+    }
+
     if (!flightDate) {
         elements.lookupStatus.className = "lookup-status-msg error";
         elements.lookupStatus.textContent = "⚠ 편명 조회를 위해 먼저 탑승일을 입력해 주세요.";
+        document.getElementById("flight-date").focus();
+        return;
+    }
+
+    // 탑승일 날짜 형식 검증 (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(flightDate)) {
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = "⚠ 탑승일 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식으로 적어주세요. (예: 2026-06-30)";
         document.getElementById("flight-date").focus();
         return;
     }
