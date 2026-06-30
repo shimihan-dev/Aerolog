@@ -37,7 +37,7 @@ const elements = {
     seatInput: document.getElementById("flight-seat"),
     seatPositionSelect: document.getElementById("flight-seat-position"),
     seatClassSelect: document.getElementById("flight-seat-class"),
-    
+
     // 요약 카드 상세 리스트 모달용 추가
     summaryDetailModal: document.getElementById("summary-detail-modal"),
     summaryDetailTitle: document.getElementById("summary-detail-title"),
@@ -46,7 +46,7 @@ const elements = {
     closeSummaryDetailBtnX: document.getElementById("close-summary-detail-btn-x"),
     statAirlinesCard: document.getElementById("stat-total-airlines"),
     statTypesCard: document.getElementById("stat-total-types"),
-    
+
     // 기체 세부 정보용 입력창 추가
     aircraftAgeInput: document.getElementById("flight-aircraft-age"),
     modesHexInput: document.getElementById("flight-modes-hex")
@@ -179,12 +179,12 @@ function createFlightCardHTML(flight) {
     // aircraftTypeId가 존재하면 'AeroType 연동 기종' 배지를 렌더링합니다.
     const isLinked = flight.aircraftTypeId && flight.aircraftTypeId.trim() !== "";
     // 실행 환경(로컬 vs Vercel 배포서버)에 따른 AeroType 경로 분기 처리
-    const isLocal = window.location.protocol === 'file:' || 
-                    window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1';
-    
-    const aeroTypeBaseUrl = isLocal 
-        ? '../Aerotype/index.html' 
+    const isLocal = window.location.protocol === 'file:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
+    const aeroTypeBaseUrl = isLocal
+        ? '../Aerotype/index.html'
         : 'https://aerotype-iota.vercel.app/';
 
     const badgeHTML = isLinked
@@ -241,9 +241,9 @@ function createFlightCardHTML(flight) {
                         ${(flight.aircraftAge || flight.modeSHex) ? `
                             <span style="font-size: 0.72rem; color: var(--text-medium); display: block; font-weight: 500; margin-top: 3px; font-family: var(--font-sans);">
                                 ${[
-                                    flight.aircraftAge ? `기령: ${flight.aircraftAge}년` : '',
-                                    flight.modeSHex ? `Hex: ${flight.modeSHex}` : ''
-                                ].filter(Boolean).join(' | ')}
+                flight.aircraftAge ? `기령: ${flight.aircraftAge}년` : '',
+                flight.modeSHex ? `Hex: ${flight.modeSHex}` : ''
+            ].filter(Boolean).join(' | ')}
                             </span>
                         ` : ''}
                     </span>
@@ -255,9 +255,9 @@ function createFlightCardHTML(flight) {
                         ${(flight.seatPosition || flight.seatClass || (flight.seat && guessSeatPosition(flight.seat))) ? `
                             <span style="font-size: 0.72rem; color: var(--text-medium); display: block; font-weight: 500; margin-top: 3px; font-family: var(--font-sans);">
                                 ${[
-                                    getPositionKo(flight.seatPosition || guessSeatPosition(flight.seat)),
-                                    getClassKo(flight.seatClass)
-                                ].filter(Boolean).join(', ')}
+                getPositionKo(flight.seatPosition || guessSeatPosition(flight.seat)),
+                getClassKo(flight.seatClass)
+            ].filter(Boolean).join(', ')}
                             </span>
                         ` : ''}
                     </span>
@@ -324,39 +324,39 @@ function deriveAircraftTypeId(typeName) {
     if (name.includes("787-8") || name.includes("788")) return "B787-8";
     if (name.includes("787-10") || name.includes("78X")) return "B787-10";
     if (name.includes("787")) return "B787-9"; // 기본값 지정
-    
+
     if (name.includes("777-300ER") || name.includes("77W")) return "B777-300ER";
     if (name.includes("777-200") || name.includes("772")) return "B777-200";
     if (name.includes("777")) return "B777-300ER";
-    
+
     if (name.includes("737-800") || name.includes("738")) return "B737-800";
     if (name.includes("737MAX8") || name.includes("37M") || name.includes("38M")) return "B737 MAX 8";
     if (name.includes("737MAX9") || name.includes("39M")) return "B737 MAX 9";
     if (name.includes("737")) return "B737-800";
-    
+
     if (name.includes("747-400") || name.includes("744")) return "B747-400";
     if (name.includes("747-8") || name.includes("748")) return "B747-8";
-    
+
     if (name.includes("350-900") || name.includes("359")) return "A350-900";
     if (name.includes("350-1000") || name.includes("35K")) return "A350-1000";
     if (name.includes("350")) return "A350-900";
-    
+
     if (name.includes("380-800") || name.includes("388") || name.includes("380")) return "A380-800";
-    
+
     if (name.includes("330-300") || name.includes("333")) return "A330-300";
     if (name.includes("330-200") || name.includes("332")) return "A330-200";
     if (name.includes("330-900") || name.includes("339")) return "A330-900neo";
-    
+
     if (name.includes("220-300") || name.includes("223")) return "A220-300";
     if (name.includes("220-100") || name.includes("221")) return "A220-100";
-    
+
     if (name.includes("321NEO") || name.includes("321N") || name.includes("21N")) return "A321neo";
     if (name.includes("320NEO") || name.includes("320N") || name.includes("20N")) return "A320neo";
     if (name.includes("321")) return "A321";
     if (name.includes("320")) return "A320";
     if (name.includes("319")) return "A319";
     if (name.includes("318")) return "A318";
-    
+
     if (name.includes("DASH-8") || name.includes("DASH8") || name.includes("Q400") || name.includes("DH4")) return "Dash8-400";
     if (name.includes("DH1") || name.includes("DASH8-100")) return "Dash8-100";
     if (name.includes("DH2") || name.includes("DASH8-200")) return "Dash8-200";
@@ -385,7 +385,7 @@ function handleAddFlightSubmit(event) {
     const departureAirport = document.getElementById("flight-dep").value.trim().toUpperCase(); // 공항 코드 대문자
     const arrivalAirport = document.getElementById("flight-arr").value.trim().toUpperCase(); // 공항 코드 대문자
     const aircraftTypeName = document.getElementById("flight-typename").value.trim();
-    
+
     let aircraftTypeId = document.getElementById("flight-typeid").value.trim();
     if (!aircraftTypeId) {
         aircraftTypeId = deriveAircraftTypeId(aircraftTypeName);
@@ -481,7 +481,7 @@ function editFlight(id) {
 
     // 에디팅 타겟 세팅 및 모달 오픈
     state.editingFlightId = id;
-    
+
     // 모달 강제 오픈
     elements.formModal.classList.add("active");
     elements.lookupStatus.className = "lookup-status-msg hidden";
@@ -515,7 +515,7 @@ window.deleteFlight = deleteFlight;
 
 function openModal() {
     elements.formModal.classList.add("active");
-    
+
     // 모달 타이틀 및 등록 버튼 텍스트 초기 상태로 복구
     document.getElementById("modal-title").textContent = "새로운 비행 기록 등록";
     document.getElementById("submit-form-btn").textContent = "등록하기";
@@ -532,7 +532,7 @@ function openModal() {
 
 function closeModal() {
     elements.formModal.classList.remove("active");
-    
+
     // 수정 모드 상태 초기화
     state.editingFlightId = null;
     elements.addFlightForm.reset();
@@ -658,6 +658,10 @@ const AIRLINE_KOREAN_MAP = {
     "China Southern Airlines": "중국남방항공",
     "China Eastern Airlines": "중국동방항공",
     "Air China": "중국국제항공",
+    "China Airlines": "중화항공",
+    "Eva Air": "에바항공",
+    "Starlux Airlines": "스타룩스항공",
+    "Tigerair Taiwan": "타이거항공타이완",
     "VietJet Air": "비엣젯항공",
     "Vietnam Airlines": "베트남항공",
     "Thai Airways": "타이항공",
@@ -733,7 +737,7 @@ async function handleFlightLookup() {
         flightNumInput.focus();
         return;
     }
-    
+
     // 편명 포맷 검증 (예: JL91, KE1101 등 항공사 코드 2-3자 + 숫자 1-4자)
     const flightNumRegex = /^[A-Z0-9]{2,3}\d{1,4}$/;
     if (!flightNumRegex.test(flightNum)) {
@@ -797,7 +801,7 @@ async function handleFlightLookup() {
         // 1단계: 편명 + 날짜 기반 항공편 실시간 상태 조회
         const flightUrl = `https://aerodatabox.p.rapidapi.com/flights/number/${flightNum}/${flightDate}`;
         const flightResponse = await fetch(flightUrl, { headers });
-        
+
         if (!flightResponse.ok) {
             if (flightResponse.status === 404) {
                 throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
@@ -822,7 +826,7 @@ async function handleFlightLookup() {
             const flightInfo = flightsData.find(f => f.codeshareStatus === "IsOperator" || f.codeshareStatus === "IsCommercialOperator") || flightsData[0];
 
             let airlineName = flightInfo.airline ? flightInfo.airline.name : "";
-            
+
             // 영어 항공사명을 사전 매핑을 통해 한글명으로 치환
             if (airlineName) {
                 const mappedName = AIRLINE_KOREAN_MAP[airlineName.trim()];
@@ -860,7 +864,7 @@ async function handleFlightLookup() {
             // 등록번호가 있는 경우 2차 기체 정밀 상세조회 (1초 호출 제한 극복 딜레이 포함)
             if (registration) {
                 elements.lookupStatus.innerHTML = `<span class="spinner"></span> 항공기 기체 상세 정보를 분석하고 있습니다 (1초 대기)...`;
-                
+
                 // 1.05초 대기
                 await new Promise(resolve => setTimeout(resolve, 1050));
 
@@ -869,15 +873,15 @@ async function handleFlightLookup() {
                     const aircraftResponse = await fetch(aircraftUrl, { headers });
                     if (aircraftResponse.ok) {
                         const aircraftData = await aircraftResponse.json();
-                        
+
                         // 정밀 기체 데이터 세팅
                         ageYears = aircraftData.ageYears !== undefined ? aircraftData.ageYears : "";
                         hexIcao = aircraftData.hexIcao || "";
-                        
+
                         if (aircraftData.typeName) {
                             finalAircraftName = aircraftData.typeName;
                         }
-                        
+
                         // AeroType 기종 ID 매핑 고도화
                         if (aircraftData.modelCode) {
                             finalAircraftId = deriveAircraftTypeId(aircraftData.modelCode);
@@ -943,7 +947,7 @@ function calculateFlightStats() {
         document.getElementById("stats-link-ratio").textContent = "0%";
         document.getElementById("airlines-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;">등록된 비행이 없습니다.</p>';
         document.getElementById("airports-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;">등록된 비행이 없습니다.</p>';
-        
+
         // 제조사 초기화
         document.getElementById("airbus-percentage").textContent = "0%";
         document.getElementById("boeing-percentage").textContent = "0%";
@@ -1034,13 +1038,13 @@ function calculateFlightStats() {
 
     document.getElementById("airbus-percentage").textContent = `${classifiedCount > 0 ? airbusPercentage : 0}%`;
     document.getElementById("boeing-percentage").textContent = `${classifiedCount > 0 ? boeingPercentage : 0}%`;
-    
+
     // 차트 애니메이션 딜레이 렌더링
     setTimeout(() => {
         document.getElementById("ratio-bar-airbus").style.width = `${classifiedCount > 0 ? airbusPercentage : 0}%`;
         document.getElementById("ratio-bar-boeing").style.width = `${classifiedCount > 0 ? boeingPercentage : 0}%`;
     }, 100);
-    
+
     document.getElementById("airbus-count-label").textContent = `${airbusCount}회 탑승`;
     document.getElementById("boeing-count-label").textContent = `${boeingCount}회 탑승`;
 
@@ -1053,12 +1057,12 @@ function calculateFlightStats() {
     flights.forEach(f => {
         // 1순위: 명시적으로 선택된 좌석 위치 정보 사용
         let pos = f.seatPosition;
-        
+
         // 2순위: 정보가 없는 경우 좌석 번호 문자열을 분석하여 유추 (폴백)
         if (!pos && f.seat) {
             pos = guessSeatPosition(f.seat);
         }
-        
+
         if (pos === "window") {
             windowSeats++;
             totalSeatsWithInfo++;
@@ -1079,7 +1083,7 @@ function calculateFlightStats() {
         document.getElementById("seat-window-percent").textContent = `${winPct}%`;
         document.getElementById("seat-aisle-percent").textContent = `${aislePct}%`;
         document.getElementById("seat-other-percent").textContent = `${otherPct}%`;
-        
+
         setTimeout(() => {
             document.getElementById("seat-window-bar").style.width = `${winPct}%`;
             document.getElementById("seat-aisle-bar").style.width = `${aislePct}%`;
@@ -1128,7 +1132,7 @@ function calculateFlightStats() {
 function openAirlinesDetailModal() {
     const flights = state.flights;
     elements.summaryDetailTitle.textContent = "✈️ 탑승 항공사 및 노선 정보";
-    
+
     if (flights.length === 0) {
         elements.summaryDetailBody.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px 0; font-size:0.9rem;">기록된 비행 로그가 없습니다.</p>';
         elements.summaryDetailModal.classList.add("active");
@@ -1146,7 +1150,7 @@ function openAirlinesDetailModal() {
             };
         }
         airlineGroups[airline].count++;
-        
+
         const dep = (f.departureAirport || "").trim().toUpperCase();
         const arr = (f.arrivalAirport || "").trim().toUpperCase();
         if (dep && arr) {
@@ -1216,7 +1220,7 @@ function openTypesDetailModal() {
     flights.forEach(f => {
         const typeName = (f.aircraftTypeName || "기타 기종").trim();
         const typeId = (f.aircraftTypeId || "").trim();
-        
+
         if (!typeGroups[typeName]) {
             typeGroups[typeName] = {
                 count: 0,
@@ -1235,11 +1239,11 @@ function openTypesDetailModal() {
         .sort((a, b) => b.count - a.count);
 
     // 실행 환경 분기 처리
-    const isLocal = window.location.protocol === 'file:' || 
-                    window.location.hostname === 'localhost' || 
-                    window.location.hostname === '127.0.0.1';
-    const aeroTypeBaseUrl = isLocal 
-        ? '../Aerotype/index.html' 
+    const isLocal = window.location.protocol === 'file:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+    const aeroTypeBaseUrl = isLocal
+        ? '../Aerotype/index.html'
         : 'https://aerotype-iota.vercel.app/';
 
     let html = '<div class="summary-detail-list">';
