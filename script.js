@@ -264,16 +264,17 @@ function createFlightCardHTML(flight) {
                 </div>
             </div>
 
-            ${flight.aircraftImageUrl ? `
-            <!-- 3.5. 실제 항공기 기종 사진 영역 -->
-            <div class="ticket-image-container">
-                <img src="${flight.aircraftImageUrl}" referrerpolicy="no-referrer" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
-            </div>
-            ` : ''}
-
             <!-- 4. 메모 및 액션 영역 -->
             <div class="ticket-memo">
                 <p class="memo-text">${memoContent}</p>
+
+                ${flight.aircraftImageUrl ? `
+                <!-- 실제 항공기 기종 사진 영역 -->
+                <div class="ticket-image-container">
+                    <img src="${flight.aircraftImageUrl}" referrerpolicy="no-referrer" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
+                </div>
+                ` : ''}
+
                 <div class="ticket-actions">
                     <button class="btn-edit" onclick="editFlight('${flight.id}')" title="비행 기록 수정">
                         <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
