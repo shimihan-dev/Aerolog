@@ -781,7 +781,17 @@ async function handleFlightLookup() {
             if (flightResponse.status === 404) {
                 throw new Error("일치하는 실시간 노선 정보가 없습니다. 수동으로 입력해 주세요.");
             }
-            throw new Error(`항공편 조회 실패 (상태코드: ${flightResponse.status})`);
+            let errMsg = `항공편 조회 실패 (상태코드: ${flightResponse.status})`;
+            try {
+                const errText = await flightResponse.text();
+                const errJson = JSON.parse(errText);
+                if (errJson && errJson.message) {
+                    errMsg += ` - ${errJson.message}`;
+                }
+            } catch (e) {
+                // JSON 파싱 실패 시 기본 상태코드 에러 출력
+            }
+            throw new Error(errMsg);
         }
 
         const flightsData = await flightResponse.json();
