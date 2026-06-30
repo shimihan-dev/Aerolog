@@ -267,7 +267,7 @@ function createFlightCardHTML(flight) {
             ${flight.aircraftImageUrl ? `
             <!-- 3.5. 실제 항공기 기종 사진 영역 -->
             <div class="ticket-image-container">
-                <img src="${flight.aircraftImageUrl}" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
+                <img src="${flight.aircraftImageUrl}" referrerpolicy="no-referrer" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
             </div>
             ` : ''}
 
