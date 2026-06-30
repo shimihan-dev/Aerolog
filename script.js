@@ -264,6 +264,13 @@ function createFlightCardHTML(flight) {
                 </div>
             </div>
 
+            ${flight.aircraftImageUrl ? `
+            <!-- 3.5. 실제 항공기 기종 사진 영역 -->
+            <div class="ticket-image-container">
+                <img src="${flight.aircraftImageUrl}" class="ticket-aircraft-image" alt="${flight.aircraftTypeName} 실물 사진" title="${flight.aircraftTypeName} (${flight.registration})">
+            </div>
+            ` : ''}
+
             <!-- 4. 메모 및 액션 영역 -->
             <div class="ticket-memo">
                 <p class="memo-text">${memoContent}</p>
@@ -396,6 +403,7 @@ function handleAddFlightSubmit(event) {
     const seatClass = document.getElementById("flight-seat-class").value;
     const aircraftAge = document.getElementById("flight-aircraft-age").value.trim();
     const modeSHex = document.getElementById("flight-modes-hex").value.trim().toUpperCase();
+    const aircraftImageUrl = document.getElementById("flight-image-url").value.trim();
     const memo = document.getElementById("flight-memo").value;
 
     if (state.editingFlightId) {
@@ -417,6 +425,7 @@ function handleAddFlightSubmit(event) {
                 seatClass,
                 aircraftAge,
                 modeSHex,
+                aircraftImageUrl,
                 memo
             };
         }
@@ -438,6 +447,7 @@ function handleAddFlightSubmit(event) {
             seatClass,
             aircraftAge,
             modeSHex,
+            aircraftImageUrl,
             memo
         };
         state.flights.unshift(newFlight);
@@ -473,6 +483,7 @@ function editFlight(id) {
     document.getElementById("flight-seat-class").value = flight.seatClass || "";
     document.getElementById("flight-aircraft-age").value = flight.aircraftAge || "";
     document.getElementById("flight-modes-hex").value = flight.modeSHex || "";
+    document.getElementById("flight-image-url").value = flight.aircraftImageUrl || "";
     document.getElementById("flight-memo").value = flight.memo || "";
 
     // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경

@@ -646,7 +646,28 @@ body {
     height: 16px;
 }
 
-/* ==========================================================================
+/* 항공기 실제 사진 영역 */
+.ticket-image-container {
+    width: 100%;
+    height: 140px;
+    overflow: hidden;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: #f5f5f4;
+}
+
+.ticket-aircraft-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-medium);
+}
+
+.ticket-card:hover .ticket-aircraft-image {
+    transform: scale(1.05);
+}
+
+/* ========================================================================== */
    빈 상태 (Empty State)
    ========================================================================== */
 .empty-state {
