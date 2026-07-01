@@ -310,9 +310,12 @@ function guessSeatPosition(seat) {
  * 단일 비행 기록 객체를 바탕으로 보딩패스 형태의 HTML 문자열을 만드는 함수
  */
 function createFlightCardHTML(flight) {
+    // 1. 기종명(aircraftTypeName)을 우선적으로 분석하여 최신 식별 ID를 유도하며, DB에 저장된 ID가 있다면 폴백으로 씁니다.
+    const targetTypeId = (deriveAircraftTypeId(flight.aircraftTypeName) || flight.aircraftTypeId || "").trim();
+    
     // AeroType 프로젝트와의 연동 여부를 판단합니다.
-    // aircraftTypeId가 존재하면 'AeroType 연동 기종' 배지를 렌더링합니다.
-    const isLinked = flight.aircraftTypeId && flight.aircraftTypeId.trim() !== "";
+    const isLinked = targetTypeId !== "";
+    
     // 실행 환경(로컬 vs Vercel 배포서버)에 따른 AeroType 경로 분기 처리
     const isLocal = window.location.protocol === 'file:' ||
         window.location.hostname === 'localhost' ||
@@ -323,7 +326,7 @@ function createFlightCardHTML(flight) {
         : 'https://aerotype-iota.vercel.app/';
 
     const badgeHTML = isLinked
-        ? `<a href="${aeroTypeBaseUrl}?id=${flight.aircraftTypeId}" target="_blank" class="aerotype-badge linked" title="클릭하여 AeroType 사전에서 상세 정보 보기 (ID: ${flight.aircraftTypeId})">
+        ? `<a href="${aeroTypeBaseUrl}?id=${targetTypeId}" target="_blank" class="aerotype-badge linked" title="클릭하여 AeroType 사전에서 상세 정보 보기 (ID: ${targetTypeId})">
             <svg class="aerotype-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             AeroType 연동 기종
            </a>`
