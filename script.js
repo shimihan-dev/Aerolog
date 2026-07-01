@@ -9,12 +9,12 @@ const SUPABASE_URL = "https://pqalomvcugjlcxkqcxtj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_rtWopuZ1r0dfLqKqIn7l6w_WqYAlAXv";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 애플리케이션 상태 (State) 관리 객체
 const state = {
     flights: [],         // 현재 비행 기록 배열
     searchQuery: "",     // 현재 실시간 검색어
     editingFlightId: null, // 현재 수정 중인 비행 기록 ID
-    user: null           // 현재 로그인한 사용자 정보
+    user: null,          // 현재 로그인한 사용자 정보
+    lastLookupTypename: "" // 가장 최근에 실시간 편명 조회로 가져온 기종명
 };
 
 // DOM 요소 참조 (HTML 요소를 자바스크립트로 조작하기 위함)
@@ -523,7 +523,21 @@ async function handleAddFlightSubmit(event) {
     const aircraftTypeName = document.getElementById("flight-typename").value.trim();
 
     let aircraftTypeId = document.getElementById("flight-typeid").value.trim();
-    if (!aircraftTypeId) {
+    
+    // 사용자가 입력 기종명을 직접 수동으로 수정한 경우 (조회한 상태 또는 수정 모드의 원본명과 비교)
+    let needsReDerive = false;
+    if (state.editingFlightId) {
+        const originalFlight = state.flights.find(f => f.id === state.editingFlightId);
+        if (originalFlight && originalFlight.aircraftTypeName !== aircraftTypeName) {
+            needsReDerive = true;
+        }
+    } else {
+        if (state.lastLookupTypename && state.lastLookupTypename !== aircraftTypeName) {
+            needsReDerive = true;
+        }
+    }
+
+    if (needsReDerive || !aircraftTypeId) {
         aircraftTypeId = deriveAircraftTypeId(aircraftTypeName);
     }
 
@@ -677,6 +691,7 @@ function openModal() {
     document.getElementById("modal-title").textContent = "새로운 비행 기록 등록";
     document.getElementById("submit-form-btn").textContent = "등록하기";
     state.editingFlightId = null;
+    state.lastLookupTypename = ""; // 조회 상태 리셋
 
     // 모달을 열었을 때 자동으로 탑승일에 현재 날짜가 기본값으로 선택되도록 센스있는 편의 기능 추가
     const today = new Date().toISOString().split('T')[0];
@@ -692,6 +707,7 @@ function closeModal() {
 
     // 수정 모드 상태 초기화
     state.editingFlightId = null;
+    state.lastLookupTypename = ""; // 조회 상태 리셋
     elements.addFlightForm.reset();
 
     // 편명 조회 상태 초기화
@@ -1198,6 +1214,7 @@ async function handleFlightLookup() {
 
                 document.getElementById("flight-typename").value = finalAircraftName || "";
                 document.getElementById("flight-typeid").value = finalAircraftId || "";
+                state.lastLookupTypename = finalAircraftName || ""; // 가장 마지막으로 자동 조회된 이름 저장
                 document.getElementById("flight-aircraft-age").value = ageYears;
                 document.getElementById("flight-modes-hex").value = hexIcao;
 
