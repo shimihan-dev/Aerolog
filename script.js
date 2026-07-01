@@ -4,6 +4,11 @@
  * LocalStorage를 활용하여 브라우저가 새로고침되어도 데이터가 유지되도록 합니다.
  */
 
+// Supabase 클라우드 데이터베이스 설정
+const SUPABASE_URL = "https://pqalomvcugjlcxkqcxtj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_rtWopuZ1r0dfLqKqIn7l6w_WqYAlAXv";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // 애플리케이션 상태 (State) 관리 객체
 const state = {
     flights: [],         // 현재 비행 기록 배열
@@ -59,29 +64,99 @@ const elements = {
 /**
  * 앱이 처음 켜질 때 데이터를 불러오는 함수
  */
-function initApp() {
-    // 로컬스토리지에서 'flightLog_flights' 키에 저장된 데이터를 읽어옵니다.
+/**
+ * 앱이 처음 켜질 때 데이터를 불러오는 함수 (Supabase 연동 및 마이그레이션 적용)
+ */
+async function initApp() {
+    // 1단계: 로컬스토리지에서 기존 데이터를 읽어옵니다.
     const storedFlights = localStorage.getItem("flightLog_flights");
 
     if (storedFlights) {
-        // 데이터가 존재하면 JSON 문자열을 원래의 자바스크립트 배열 객체로 변환합니다.
-        state.flights = JSON.parse(storedFlights);
-    } else {
-        // 데이터가 없으면, data/sampleFlights.js에서 정의한 기본 샘플 데이터를 사용합니다.
-        state.flights = [...window.sampleFlights];
-        saveFlightsToStorage(); // 샘플 데이터를 로컬스토리지에 저장합니다.
+        try {
+            const localFlights = JSON.parse(storedFlights);
+            if (Array.isArray(localFlights) && localFlights.length > 0) {
+                console.log("로컬 데이터를 찾았습니다. Supabase로 동기화를 시작합니다...");
+                // Supabase 컬럼 규격에 맞춰 데이터를 정제합니다 (오류 예방)
+                const sanitized = localFlights.map(f => ({
+                    id: f.id || ("flight-" + Date.now() + Math.random().toString(36).substr(2, 4)),
+                    date: f.date || "",
+                    airline: f.airline || "",
+                    flightNumber: f.flightNumber || "",
+                    registration: f.registration || "",
+                    departureAirport: f.departureAirport || "",
+                    arrivalAirport: f.arrivalAirport || "",
+                    aircraftTypeName: f.aircraftTypeName || "",
+                    aircraftTypeId: f.aircraftTypeId || "",
+                    seat: f.seat || "",
+                    seatPosition: f.seatPosition || "",
+                    seatClass: f.seatClass || "",
+                    aircraftAge: f.aircraftAge || "",
+                    modeSHex: f.modeSHex || "",
+                    memo: f.memo || ""
+                }));
+
+                // Supabase에 데이터를 Upsert(추가 혹은 업데이트)합니다.
+                const { error } = await supabaseClient.from('flights').upsert(sanitized);
+                if (error) {
+                    console.error("Supabase로 데이터 동기화 실패:", error.message);
+                } else {
+                    console.log("Supabase로 데이터 동기화 완료! 로컬 저장소를 정리합니다.");
+                    localStorage.removeItem("flightLog_flights");
+                }
+            }
+        } catch (e) {
+            console.error("로컬스토리지 마이그레이션 파싱 에러:", e);
+        }
     }
 
-    // 화면 그리기 (렌더링) 및 통계 업데이트
+    // 2단계: Supabase로부터 전체 비행 로그 데이터를 로드합니다 (날짜 역순 정렬)
+    try {
+        const { data: dbFlights, error } = await supabaseClient
+            .from('flights')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+
+        if (!dbFlights || dbFlights.length === 0) {
+            // 테이블이 비어있다면, 샘플 데이터를 Supabase에 밀어넣습니다.
+            console.log("DB에 저장된 비행 기록이 없습니다. 기본 샘플 데이터를 생성합니다...");
+            const sanitizedSamples = window.sampleFlights.map(f => ({
+                id: f.id,
+                date: f.date || "",
+                airline: f.airline || "",
+                flightNumber: f.flightNumber || "",
+                registration: f.registration || "",
+                departureAirport: f.departureAirport || "",
+                arrivalAirport: f.arrivalAirport || "",
+                aircraftTypeName: f.aircraftTypeName || "",
+                aircraftTypeId: f.aircraftTypeId || "",
+                seat: f.seat || "",
+                seatPosition: f.seatPosition || "",
+                seatClass: f.seatClass || "",
+                aircraftAge: f.aircraftAge || "",
+                modeSHex: f.modeSHex || "",
+                memo: f.memo || ""
+            }));
+
+            const { error: insertError } = await supabaseClient.from('flights').upsert(sanitizedSamples);
+            if (insertError) {
+                console.error("샘플 데이터 DB 업로드 실패:", insertError.message);
+                state.flights = sanitizedSamples; // 로컬 폴백
+            } else {
+                state.flights = sanitizedSamples;
+            }
+        } else {
+            state.flights = dbFlights;
+        }
+    } catch (dbError) {
+        console.error("Supabase 데이터 로드 실패. 로컬 샘플 데이터를 폴백으로 사용합니다:", dbError.message);
+        state.flights = [...window.sampleFlights];
+    }
+
+    // 화면 그리기 (렌더링) 및 통계 업데이트, 이벤트 리스너 바인딩
     renderApp();
     setupEventListeners();
-}
-
-/**
- * 현재 상태(state.flights)를 로컬스토리지에 저장하는 함수
- */
-function saveFlightsToStorage() {
-    localStorage.setItem("flightLog_flights", JSON.stringify(state.flights));
 }
 
 // ==========================================================================
@@ -375,7 +450,7 @@ function deriveAircraftTypeId(typeName) {
 /**
  * 새로운 비행 로그를 등록하는 이벤트 핸들러
  */
-function handleAddFlightSubmit(event) {
+async function handleAddFlightSubmit(event) {
     event.preventDefault(); // 폼 제출 시 페이지가 새로고침되는 기본 동작을 막습니다.
 
     // 폼 입력 필드 값 가져오기 및 양끝 공백 제거
@@ -399,58 +474,67 @@ function handleAddFlightSubmit(event) {
     const modeSHex = document.getElementById("flight-modes-hex").value.trim().toUpperCase();
     const memo = document.getElementById("flight-memo").value;
 
-    if (state.editingFlightId) {
-        // [수정 모드] 기존 비행 정보 업데이트
-        const flightIndex = state.flights.findIndex(f => f.id === state.editingFlightId);
-        if (flightIndex > -1) {
-            state.flights[flightIndex] = {
-                ...state.flights[flightIndex],
-                date,
-                airline,
-                flightNumber,
-                registration,
-                departureAirport,
-                arrivalAirport,
-                aircraftTypeName,
-                aircraftTypeId,
-                seat,
-                seatPosition,
-                seatClass,
-                aircraftAge,
-                modeSHex,
-                memo
+    const flightData = {
+        date,
+        airline,
+        flightNumber,
+        registration,
+        departureAirport,
+        arrivalAirport,
+        aircraftTypeName,
+        aircraftTypeId,
+        seat,
+        seatPosition,
+        seatClass,
+        aircraftAge,
+        modeSHex,
+        memo
+    };
+
+    try {
+        if (state.editingFlightId) {
+            // [수정 모드] 기존 비행 정보 업데이트
+            const { error } = await supabaseClient
+                .from('flights')
+                .update(flightData)
+                .eq('id', state.editingFlightId);
+
+            if (error) throw error;
+
+            const flightIndex = state.flights.findIndex(f => f.id === state.editingFlightId);
+            if (flightIndex > -1) {
+                state.flights[flightIndex] = {
+                    ...state.flights[flightIndex],
+                    ...flightData
+                };
+            }
+            state.editingFlightId = null; // 수정 모드 해제
+        } else {
+            // [신규 모드] 새로운 비행 기록 추가
+            const newFlight = {
+                id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
+                ...flightData
             };
+
+            const { error } = await supabaseClient
+                .from('flights')
+                .insert(newFlight);
+
+            if (error) throw error;
+
+            state.flights.unshift(newFlight);
         }
-        state.editingFlightId = null; // 수정 모드 해제
-    } else {
-        // [신규 모드] 새로운 비행 기록 추가
-        const newFlight = {
-            id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
-            date,
-            airline,
-            flightNumber,
-            registration,
-            departureAirport,
-            arrivalAirport,
-            aircraftTypeName,
-            aircraftTypeId,
-            seat,
-            seatPosition,
-            seatClass,
-            aircraftAge,
-            modeSHex,
-            memo
-        };
-        state.flights.unshift(newFlight);
+
+        // 화면 재렌더링
+        renderApp();
+
+        // 입력 폼 초기화 및 모달 닫기
+        elements.addFlightForm.reset();
+        closeModal();
+    } catch (err) {
+        console.error("비행 기록 저장 중 에러 발생:", err);
+        alert("비행 기록 저장 실패: " + err.message);
     }
-
-    // 로컬스토리지에 저장 및 화면 재렌더링
-    saveFlightsToStorage();
-    renderApp();
-
-    // 입력 폼 초기화 및 모달 닫기
-    elements.addFlightForm.reset();
-    closeModal();
 }
 
 /**
@@ -492,18 +576,29 @@ function editFlight(id) {
 window.editFlight = editFlight;
 
 /**
- * 비행 로그를 삭제하는 함수
+ * 비행 로그를 삭제하는 함수 (Supabase 비동기 처리 적용)
  * HTML 내 inline onclick 속성에서 호출합니다.
  */
-function deleteFlight(id) {
+async function deleteFlight(id) {
     // 삭제 전 사용자에게 확인을 요청합니다.
     if (confirm("이 비행 기록을 정말로 삭제하시겠습니까?")) {
-        // 일치하지 않는 아이디만 걸러내어 새로운 배열을 만듭니다.
-        state.flights = state.flights.filter(flight => flight.id !== id);
+        try {
+            const { error } = await supabaseClient
+                .from('flights')
+                .delete()
+                .eq('id', id);
 
-        // 로컬스토리지에 저장 및 화면 재렌더링
-        saveFlightsToStorage();
-        renderApp();
+            if (error) throw error;
+
+            // 일치하지 않는 아이디만 걸러내어 새로운 배열을 만듭니다.
+            state.flights = state.flights.filter(flight => flight.id !== id);
+
+            // 화면 재렌더링
+            renderApp();
+        } catch (err) {
+            console.error("비행 기록 삭제 중 에러 발생:", err);
+            alert("비행 기록 삭제 실패: " + err.message);
+        }
     }
 }
 
