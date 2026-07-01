@@ -13,7 +13,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const state = {
     flights: [],         // 현재 비행 기록 배열
     searchQuery: "",     // 현재 실시간 검색어
-    editingFlightId: null // 현재 수정 중인 비행 기록 ID
+    editingFlightId: null, // 현재 수정 중인 비행 기록 ID
+    user: null           // 현재 로그인한 사용자 정보
 };
 
 // DOM 요소 참조 (HTML 요소를 자바스크립트로 조작하기 위함)
@@ -52,6 +53,20 @@ const elements = {
     statAirlinesCard: document.getElementById("stat-total-airlines"),
     statTypesCard: document.getElementById("stat-total-types"),
 
+    // Supabase Auth 관련 DOM 요소 추가
+    authContainer: document.getElementById("auth-container"),
+    appContainer: document.getElementById("app-main-container"),
+    authForm: document.getElementById("auth-form"),
+    authEmail: document.getElementById("auth-email"),
+    authPassword: document.getElementById("auth-password"),
+    authSubmitBtn: document.getElementById("btn-auth-submit"),
+    authSwitchBtn: document.getElementById("btn-auth-switch"),
+    authTitle: document.getElementById("auth-title"),
+    authErrorMsg: document.getElementById("auth-error-msg"),
+    headerUserInfo: document.getElementById("header-user-info"),
+    userEmailDisplay: document.getElementById("user-email-display"),
+    logoutBtn: document.getElementById("btn-logout"),
+
     // 기체 세부 정보용 입력창 추가
     aircraftAgeInput: document.getElementById("flight-aircraft-age"),
     modesHexInput: document.getElementById("flight-modes-hex")
@@ -65,20 +80,61 @@ const elements = {
  * 앱이 처음 켜질 때 데이터를 불러오는 함수
  */
 /**
- * 앱이 처음 켜질 때 데이터를 불러오는 함수 (Supabase 연동 및 마이그레이션 적용)
+ * 앱이 처음 켜질 때 데이터를 불러오고 Supabase Auth 세션을 감지하는 함수
  */
-async function initApp() {
-    // 1단계: 로컬스토리지에서 기존 데이터를 읽어옵니다.
-    const storedFlights = localStorage.getItem("flightLog_flights");
+function initApp() {
+    // 1단계: Auth 상태 감지 리스너 등록
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+            console.log("로그인 상태 감지됨:", session.user.email);
+            state.user = session.user;
+            
+            // UI 전환: 로그인 카드 숨김, 메인 대시보드 표시
+            elements.authContainer.style.display = "none";
+            elements.appContainer.style.display = "block";
+            
+            // 네비게이션 사용자 이메일 표시 및 로그아웃 단추 표시
+            elements.headerUserInfo.style.display = "flex";
+            elements.userEmailDisplay.textContent = session.user.email;
+            
+            // 로컬스토리지가 남아있다면 로그인한 유저의 ID로 마이그레이션 진행
+            await migrateLocalData(session.user.id);
+            
+            // 유저의 비행 데이터 로딩
+            await loadUserFlights();
+        } else {
+            console.log("로그아웃 상태 또는 미인증 유저");
+            state.user = null;
+            state.flights = [];
+            
+            // UI 전환: 메인 대시보드 숨김, 로그인 카드 표시
+            elements.appContainer.style.display = "none";
+            elements.authContainer.style.display = "flex";
+            elements.headerUserInfo.style.display = "none";
+            
+            // 화면 갱신
+            renderApp();
+        }
+    });
 
+    // 2단계: 이벤트 리스너 바인딩
+    setupEventListeners();
+}
+
+/**
+ * 로컬 데이터를 특정 사용자 ID로 Supabase 테이블에 마이그레이션하는 함수
+ */
+async function migrateLocalData(userId) {
+    const storedFlights = localStorage.getItem("flightLog_flights");
     if (storedFlights) {
         try {
             const localFlights = JSON.parse(storedFlights);
             if (Array.isArray(localFlights) && localFlights.length > 0) {
-                console.log("로컬 데이터를 찾았습니다. Supabase로 동기화를 시작합니다...");
+                console.log(`로컬 기록(${localFlights.length}개)을 로그인 계정(${userId})으로 이전(마이그레이션)합니다...`);
                 // Supabase 컬럼 규격에 맞춰 데이터를 정제합니다 (오류 예방)
                 const sanitized = localFlights.map(f => ({
                     id: f.id || ("flight-" + Date.now() + Math.random().toString(36).substr(2, 4)),
+                    user_id: userId, // 로그인한 사용자의 UID 매핑
                     date: f.date || "",
                     airline: f.airline || "",
                     flightNumber: f.flightNumber || "",
@@ -98,9 +154,9 @@ async function initApp() {
                 // Supabase에 데이터를 Upsert(추가 혹은 업데이트)합니다.
                 const { error } = await supabaseClient.from('flights').upsert(sanitized);
                 if (error) {
-                    console.error("Supabase로 데이터 동기화 실패:", error.message);
+                    console.error("데이터 동기화 실패:", error.message);
                 } else {
-                    console.log("Supabase로 데이터 동기화 완료! 로컬 저장소를 정리합니다.");
+                    console.log("Supabase 마이그레이션 동기화 성공! 로컬 저장소를 비웁니다.");
                     localStorage.removeItem("flightLog_flights");
                 }
             }
@@ -108,8 +164,12 @@ async function initApp() {
             console.error("로컬스토리지 마이그레이션 파싱 에러:", e);
         }
     }
+}
 
-    // 2단계: Supabase로부터 전체 비행 로그 데이터를 로드합니다 (날짜 역순 정렬)
+/**
+ * 로그인한 사용자의 비행 데이터를 로딩하는 함수
+ */
+async function loadUserFlights() {
     try {
         const { data: dbFlights, error } = await supabaseClient
             .from('flights')
@@ -119,10 +179,11 @@ async function initApp() {
         if (error) throw error;
 
         if (!dbFlights || dbFlights.length === 0) {
-            // 테이블이 비어있다면, 샘플 데이터를 Supabase에 밀어넣습니다.
-            console.log("DB에 저장된 비행 기록이 없습니다. 기본 샘플 데이터를 생성합니다...");
+            // 테이블이 비어있다면, 샘플 데이터를 현재 사용자 아이디로 Supabase에 밀어넣습니다.
+            console.log("DB에 저장된 비행 기록이 없습니다. 샘플 데이터를 계정에 귀속시킵니다...");
             const sanitizedSamples = window.sampleFlights.map(f => ({
                 id: f.id,
+                user_id: state.user.id, // 사용자 UID 매핑
                 date: f.date || "",
                 airline: f.airline || "",
                 flightNumber: f.flightNumber || "",
@@ -142,7 +203,7 @@ async function initApp() {
             const { error: insertError } = await supabaseClient.from('flights').upsert(sanitizedSamples);
             if (insertError) {
                 console.error("샘플 데이터 DB 업로드 실패:", insertError.message);
-                state.flights = sanitizedSamples; // 로컬 폴백
+                state.flights = [];
             } else {
                 state.flights = sanitizedSamples;
             }
@@ -150,13 +211,12 @@ async function initApp() {
             state.flights = dbFlights;
         }
     } catch (dbError) {
-        console.error("Supabase 데이터 로드 실패. 로컬 샘플 데이터를 폴백으로 사용합니다:", dbError.message);
-        state.flights = [...window.sampleFlights];
+        console.error("Supabase 데이터 로드 실패:", dbError.message);
+        state.flights = [];
     }
 
-    // 화면 그리기 (렌더링) 및 통계 업데이트, 이벤트 리스너 바인딩
+    // 화면 그리기 (렌더링) 및 통계 업데이트
     renderApp();
-    setupEventListeners();
 }
 
 // ==========================================================================
@@ -475,6 +535,7 @@ async function handleAddFlightSubmit(event) {
     const memo = document.getElementById("flight-memo").value;
 
     const flightData = {
+        user_id: state.user ? state.user.id : null,
         date,
         airline,
         flightNumber,
@@ -727,9 +788,67 @@ function setupEventListeners() {
     elements.closeSummaryDetailBtn.addEventListener("click", closeSummaryDetailModal);
     elements.closeSummaryDetailBtnX.addEventListener("click", closeSummaryDetailModal);
 
-    elements.summaryDetailModal.addEventListener("click", (e) => {
-        if (e.target === elements.summaryDetailModal) {
-            closeSummaryDetailModal();
+    // 9. Supabase Auth 로그인/회원가입/로그아웃 이벤트 리스너 추가
+    let isSignUpMode = false; // 로그인 모드가 기본값
+
+    elements.authSwitchBtn.addEventListener("click", () => {
+        isSignUpMode = !isSignUpMode;
+        if (isSignUpMode) {
+            elements.authTitle.textContent = "FlightLog 회원가입";
+            elements.authSubmitBtn.textContent = "회원가입";
+            elements.authSwitchBtn.textContent = "로그인하러 가기";
+        } else {
+            elements.authTitle.textContent = "FlightLog 로그인";
+            elements.authSubmitBtn.textContent = "로그인";
+            elements.authSwitchBtn.textContent = "회원가입하기";
+        }
+        elements.authErrorMsg.classList.add("hidden");
+        elements.authErrorMsg.textContent = "";
+    });
+
+    elements.authForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = elements.authEmail.value.trim();
+        const password = elements.authPassword.value;
+
+        elements.authSubmitBtn.disabled = true;
+        elements.authSubmitBtn.textContent = isSignUpMode ? "가입 중..." : "로그인 중...";
+        elements.authErrorMsg.classList.add("hidden");
+        elements.authErrorMsg.textContent = "";
+
+        try {
+            if (isSignUpMode) {
+                // 회원가입
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email,
+                    password
+                });
+                if (error) throw error;
+                alert("회원가입이 완료되었습니다! 이메일 인증이 활성화되어 있는 경우 메일을 확인해 주세요. 바로 로그인됩니다.");
+            } else {
+                // 로그인
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (error) throw error;
+            }
+        } catch (err) {
+            console.error("Auth Error:", err);
+            elements.authErrorMsg.textContent = err.message || "인증 처리 중 오류가 발생했습니다.";
+            elements.authErrorMsg.classList.remove("hidden");
+        } finally {
+            elements.authSubmitBtn.disabled = false;
+            elements.authSubmitBtn.textContent = isSignUpMode ? "회원가입" : "로그인";
+        }
+    });
+
+    elements.logoutBtn.addEventListener("click", async () => {
+        if (confirm("로그아웃 하시겠습니까?")) {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert("로그아웃 실패: " + error.message);
+            }
         }
     });
 }
