@@ -69,7 +69,13 @@ const elements = {
 
     // 기체 세부 정보용 입력창 추가
     aircraftAgeInput: document.getElementById("flight-aircraft-age"),
-    modesHexInput: document.getElementById("flight-modes-hex")
+    modesHexInput: document.getElementById("flight-modes-hex"),
+
+    // 공항명 실시간 표시 참조 추가
+    flightDepInput: document.getElementById("flight-dep"),
+    flightArrInput: document.getElementById("flight-arr"),
+    flightDepMatch: document.getElementById("flight-dep-match"),
+    flightArrMatch: document.getElementById("flight-arr-match")
 };
 
 // ==========================================================================
@@ -170,10 +176,16 @@ async function migrateLocalData(userId) {
  * 로그인한 사용자의 비행 데이터를 로딩하는 함수
  */
 async function loadUserFlights() {
+    // 데이터베이스 로딩 상태 UI 표시
+    elements.grid.innerHTML = '<div class="loading-spinner-wrapper"><span class="spinner"></span> 데이터베이스에서 비행 기록을 불러오는 중입니다...</div>';
+    elements.emptyState.classList.add("hidden");
+    elements.grid.style.display = "grid";
+
     try {
         const { data: dbFlights, error } = await supabaseClient
             .from('flights')
             .select('*')
+            .eq('user_id', state.user.id)
             .order('date', { ascending: false });
 
         if (error) throw error;
@@ -181,8 +193,8 @@ async function loadUserFlights() {
         if (!dbFlights || dbFlights.length === 0) {
             // 테이블이 비어있다면, 샘플 데이터를 현재 사용자 아이디로 Supabase에 밀어넣습니다.
             console.log("DB에 저장된 비행 기록이 없습니다. 샘플 데이터를 계정에 귀속시킵니다...");
-            const sanitizedSamples = window.sampleFlights.map(f => ({
-                id: f.id,
+            const sanitizedSamples = window.sampleFlights.map((f, idx) => ({
+                id: `sample-${state.user.id}-${idx}`, // 고유 사용자별 고유 샘플 ID 부여
                 user_id: state.user.id, // 사용자 UID 매핑
                 date: f.date || "",
                 airline: f.airline || "",
@@ -348,8 +360,9 @@ function createFlightCardHTML(flight) {
 
             <!-- 2. 출발-도착 공항 (노선) -->
             <div class="ticket-route">
-                <div class="airport-block">
+                <div class="airport-block" title="${getAirportName(flight.departureAirport)}">
                     <span class="airport-code">${flight.departureAirport}</span>
+                    <span class="airport-name">${getAirportName(flight.departureAirport) || '&nbsp;'}</span>
                     <span class="airport-label">DEPARTURE</span>
                 </div>
                 <div class="flight-path">
@@ -359,8 +372,9 @@ function createFlightCardHTML(flight) {
                         <path d="M21 16V14L13 9V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z"/>
                     </svg>
                 </div>
-                <div class="airport-block arr">
+                <div class="airport-block arr" title="${getAirportName(flight.arrivalAirport)}">
                     <span class="airport-code">${flight.arrivalAirport}</span>
+                    <span class="airport-name">${getAirportName(flight.arrivalAirport) || '&nbsp;'}</span>
                     <span class="airport-label">ARRIVAL</span>
                 </div>
             </div>
@@ -506,6 +520,56 @@ function deriveAircraftTypeId(typeName) {
     if (name.includes("E190") || name.includes("190")) return "E190";
     if (name.includes("E195") || name.includes("195")) return "E195";
 
+    if (name.includes("CONCORDE") || name.includes("CONC")) return "concorde";
+    if (name.includes("L1011") || name.includes("TRISTAR") || name.includes("L101")) return "l1011-tristar";
+    
+    if (name.includes("DC10") || name.includes("DC-10")) {
+        if (name.includes("10-30") || name.includes("DC103")) return "DC-10-30";
+        if (name.includes("10-10") || name.includes("DC101")) return "DC-10-10";
+        return "dc-10-family";
+    }
+    
+    if (name.includes("DC8") || name.includes("DC-8")) {
+        if (name.includes("8-73") || name.includes("DC873")) return "DC-8-73";
+        if (name.includes("8-72") || name.includes("DC872")) return "DC-8-72";
+        if (name.includes("8-71") || name.includes("DC871")) return "DC-8-71";
+        if (name.includes("8-63") || name.includes("DC863")) return "DC-8-63";
+        if (name.includes("8-62") || name.includes("DC862")) return "DC-8-62";
+        if (name.includes("8-61") || name.includes("DC861")) return "DC-8-61";
+        if (name.includes("8-51") || name.includes("DC851")) return "DC-8-51";
+        if (name.includes("8-41") || name.includes("DC841")) return "DC-8-41";
+        if (name.includes("8-31") || name.includes("DC831")) return "DC-8-31";
+        if (name.includes("8-21") || name.includes("DC821")) return "DC-8-21";
+        if (name.includes("8-11") || name.includes("DC811")) return "DC-8-11";
+        return "dc-8-family";
+    }
+
+    if (name.includes("DC9") || name.includes("DC-9")) {
+        if (name.includes("9-51") || name.includes("DC95")) return "DC-9-51";
+        if (name.includes("9-41") || name.includes("DC94")) return "DC-9-41";
+        if (name.includes("9-32") || name.includes("DC932")) return "DC-9-32";
+        if (name.includes("9-31") || name.includes("DC931")) return "DC-9-31";
+        if (name.includes("9-21") || name.includes("DC92")) return "DC-9-21";
+        if (name.includes("9-15") || name.includes("DC915")) return "DC-9-15";
+        if (name.includes("9-11") || name.includes("DC911")) return "DC-9-11";
+        return "dc-9-family";
+    }
+
+    if (name.includes("MD90") || name.includes("MD-90")) return "md-90";
+    if (name.includes("MD8") || name.includes("MD-8")) {
+        if (name.includes("81") || name.includes("MD81")) return "MD-81";
+        if (name.includes("82") || name.includes("MD82")) return "MD-82";
+        if (name.includes("83") || name.includes("MD83")) return "MD-83";
+        if (name.includes("88") || name.includes("MD88")) return "MD-88";
+        return "md-80-family";
+    }
+
+    if (name.includes("C909") || name.includes("ARJ21") || name.includes("ARJ2")) return "c909-family";
+    if (name.includes("C919") || name.includes("COMACC919")) return "c919";
+
+    if (name.includes("FOKKER70") || name.includes("F70")) return "Fokker-70";
+    if (name.includes("FOKKER100") || name.includes("F100")) return "Fokker-100";
+
     // 일치하는 대안이 없으면, 입력한 원래 텍스트를 그대로 식별자로 써봅니다.
     return typeName.trim();
 }
@@ -575,7 +639,8 @@ async function handleAddFlightSubmit(event) {
             const { error } = await supabaseClient
                 .from('flights')
                 .update(flightData)
-                .eq('id', state.editingFlightId);
+                .eq('id', state.editingFlightId)
+                .eq('user_id', state.user.id); // 타 사용자의 데이터 수정을 원천 차단
 
             if (error) throw error;
 
@@ -590,7 +655,7 @@ async function handleAddFlightSubmit(event) {
         } else {
             // [신규 모드] 새로운 비행 기록 추가
             const newFlight = {
-                id: "flight-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프 사용
+                id: "flight-" + state.user.id + "-" + Date.now(), // 고유한 ID 생성을 위해 타임스탬프와 유저 UID 조합 사용
                 ...flightData
             };
 
@@ -635,8 +700,13 @@ function editFlight(id) {
     document.getElementById("flight-seat-position").value = flight.seatPosition || "";
     document.getElementById("flight-seat-class").value = flight.seatClass || "";
     document.getElementById("flight-aircraft-age").value = flight.aircraftAge || "";
-    document.getElementById("flight-modes-hex").value = flight.modeSHex || "";
     document.getElementById("flight-memo").value = flight.memo || "";
+
+    // 공항명 매치 표시 업데이트
+    const depName = getAirportName(flight.departureAirport);
+    const arrName = getAirportName(flight.arrivalAirport);
+    elements.flightDepMatch.textContent = depName ? `출발지: ${depName}` : "";
+    elements.flightArrMatch.textContent = arrName ? `도착지: ${arrName}` : "";
 
     // 모달 타이틀 및 등록 버튼 텍스트 수정 모드로 변경
     document.getElementById("modal-title").textContent = "비행 기록 수정";
@@ -664,7 +734,8 @@ async function deleteFlight(id) {
             const { error } = await supabaseClient
                 .from('flights')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', state.user.id); // 타 사용자의 데이터 삭제 원천 차단
 
             if (error) throw error;
 
@@ -703,6 +774,10 @@ function openModal() {
     // 편명 조회 상태 초기화
     elements.lookupStatus.className = "lookup-status-msg hidden";
     elements.lookupStatus.innerHTML = "";
+
+    // 공항명 매치 표시 초기화
+    elements.flightDepMatch.textContent = "";
+    elements.flightArrMatch.textContent = "";
 }
 
 function closeModal() {
@@ -716,6 +791,10 @@ function closeModal() {
     // 편명 조회 상태 초기화
     elements.lookupStatus.className = "lookup-status-msg hidden";
     elements.lookupStatus.innerHTML = "";
+
+    // 공항명 매치 표시 초기화
+    elements.flightDepMatch.textContent = "";
+    elements.flightArrMatch.textContent = "";
 }
 
 function setupEventListeners() {
@@ -801,6 +880,19 @@ function setupEventListeners() {
         }
     });
 
+    // 7.1 출발/도착 공항 입력 시 공항명 실시간 노출 리스너
+    elements.flightDepInput.addEventListener("input", (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        const matchedName = getAirportName(val);
+        elements.flightDepMatch.textContent = matchedName ? `출발지: ${matchedName}` : "";
+    });
+
+    elements.flightArrInput.addEventListener("input", (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        const matchedName = getAirportName(val);
+        elements.flightArrMatch.textContent = matchedName ? `도착지: ${matchedName}` : "";
+    });
+
     // 8. 요약 대시보드 카드 클릭 이벤트 및 팝업 모달 제어
     elements.statAirlinesCard.addEventListener("click", openAirlinesDetailModal);
     elements.statTypesCard.addEventListener("click", openTypesDetailModal);
@@ -870,6 +962,122 @@ function setupEventListeners() {
             }
         }
     });
+}
+// IATA 공항 코드 => 한글 공항명 매핑 사전
+const AIRPORT_KOREAN_MAP = {
+    // 국내 공항
+    "GMP": "김포국제공항",
+    "ICN": "인천국제공항",
+    "CJU": "제주국제공항",
+    "PUS": "김해국제공항",
+    "TAE": "대구국제공항",
+    "CJJ": "청주국제공항",
+    "KWJ": "광주공항",
+    "MWX": "무안국제공항",
+    "USN": "울산공항",
+    "YNY": "양양국제공항",
+    "HIN": "사천공항",
+    "RSU": "여수공항",
+    "KUV": "군산공항",
+    "WJU": "원주공항",
+    
+    // 일본 공항
+    "HND": "도쿄 하네다공항",
+    "NRT": "도쿄 나리타공항",
+    "KIX": "오사카 간사이공항",
+    "ITM": "오사카 이타미공항",
+    "FUK": "후쿠오카공항",
+    "CTS": "삿포로 신치토세공항",
+    "NGO": "나고야 주부공항",
+    "OKA": "오키나와 나하공항",
+    "KOJ": "가고시마공항",
+    "KMJ": "구마모토공항",
+    "OIT": "오이타공항",
+    "MYJ": "마쓰야마공항",
+    "HIJ": "히로시마공항",
+    "KIJ": "니가타공항",
+    "SDJ": "센다이공항",
+    "OKJ": "오카야마공항",
+    "TAK": "다카마쓰공항",
+    "KMI": "미야자키공항",
+    
+    // 중국 및 대만, 홍콩, 마카오 공항
+    "PEK": "베이징 서우두공항",
+    "PKX": "베이징 다싱공항",
+    "PVG": "상하이 푸동공항",
+    "SHA": "상하이 훙차오공항",
+    "CAN": "광저우 바이윈공항",
+    "SZX": "선전 바오안공항",
+    "TAO": "칭다오 자오둥공항",
+    "TNA": "진안 야오창공항",
+    "DLC": "다롄 저우수이쯔공항",
+    "SHE": "선양 타오셴공항",
+    "HRB": "하얼빈 타이핑공항",
+    "CGQ": "창춘 룽자공항",
+    "YNZ": "옌청 난양공항",
+    "YNJ": "옌지 차오양촨공항",
+    "HKG": "홍콩국제공항",
+    "MFM": "마카오국제공항",
+    "TPE": "타이베이 타오원공항",
+    "TSA": "타이베이 송산공항",
+    "KHH": "카오슝국제공항",
+    
+    // 동남아시아 공항
+    "SIN": "싱가포르 창이공항",
+    "BKK": "방콕 수완나품공항",
+    "DMK": "방콕 돈므앙공항",
+    "KUL": "쿠알라룸푸르국제공항",
+    "CGK": "자카르타 수카르노하타공항",
+    "DPS": "발리 응우라라이공항",
+    "MNL": "마닐라 니노이아키노공항",
+    "SGN": "호치민 탄손누트공항",
+    "HAN": "하노이 노이바이공항",
+    "DAD": "다낭국제공항",
+    "CXR": "냐짱 깜라인공항",
+    "PQC": "푸꾸옥국제공항",
+    "REP": "씨엠립 앙코르공항",
+    "PNH": "프놈펜국제공항",
+    "VTE": "비엔티안 왓타이공항",
+    "CEB": "세부 막탄공항",
+    "BOR": "보라카이 칼리보공항",
+    "MPH": "보라카이 까띡란공항",
+    
+    // 미주 및 유럽, 대양주 공항
+    "JFK": "뉴욕 존 F. 케네디공항",
+    "EWR": "뉴욕 뉴어크공항",
+    "LGA": "뉴욕 라구아디아공항",
+    "LAX": "로스앤젤레스국제공항",
+    "SFO": "샌프란시스코국제공항",
+    "SEA": "시애틀 타코마공항",
+    "ORD": "시카고 오헤어공항",
+    "DFW": "댈러스 포트워스공항",
+    "ATL": "애틀랜타 하츠필드잭슨공항",
+    "MIA": "마이애미국제공항",
+    "LAS": "라스베이거스 해리리드공항",
+    "HNL": "호놀룰루 다니엘 K. 이노우에공항",
+    "GUM": "괌 안토니오 B. 원팻공항",
+    "SPN": "사이판국제공항",
+    "LHR": "런던 히드로공항",
+    "CDG": "파리 샤를드골공항",
+    "FRA": "프랑크푸르트공항",
+    "AMS": "암스테르담 스키폴공항",
+    "FCO": "로마 피우미치노공항",
+    "MAD": "마드리드 바라하스공항",
+    "SYD": "시드니 킹스포드스미스공항",
+    "MEL": "멜버른국제공항",
+    "BNE": "브리스번공항",
+    "AKL": "오클랜드국제공항",
+    "YVR": "밴쿠버국제공항",
+    "YYZ": "토론토 피어슨공항"
+};
+
+/**
+ * IATA 공항 코드로부터 한글 공항명을 가져오는 헬퍼 함수
+ */
+function getAirportName(code) {
+    if (!code) return "";
+    const cleanCode = code.trim().toUpperCase();
+    return AIRPORT_KOREAN_MAP[cleanCode] || "";
 }
 
 // Aviationstack 영문 항공사명 => 한글 항공사명 매핑 사전
@@ -984,7 +1192,34 @@ const AIRCRAFT_IATA_MAP = {
     "DH1": { name: "Bombardier Dash 8-100", id: "Dash8-100" },
     "DH2": { name: "Bombardier Dash 8-200", id: "Dash8-200" },
     "DH3": { name: "Bombardier Dash 8-300", id: "Dash8-300" },
-    "DH4": { name: "Bombardier Dash 8 Q400", id: "Dash8-400" }
+    "DH4": { name: "Bombardier Dash 8 Q400", id: "Dash8-400" },
+    "CONC": { name: "Airbus Concorde", id: "concorde" },
+    "L101": { name: "Lockheed L-1011 TriStar", id: "l1011-tristar" },
+    "DC10": { name: "Douglas DC-10", id: "dc-10-family" },
+    "DC81": { name: "Douglas DC-8-11", id: "DC-8-11" },
+    "DC82": { name: "Douglas DC-8-21", id: "DC-8-21" },
+    "DC83": { name: "Douglas DC-8-31", id: "DC-8-31" },
+    "DC84": { name: "Douglas DC-8-41", id: "DC-8-41" },
+    "DC85": { name: "Douglas DC-8-51", id: "DC-8-51" },
+    "DC86": { name: "Douglas DC-8-61", id: "DC-8-61" },
+    "DC87": { name: "Douglas DC-8-71", id: "DC-8-71" },
+    "DC8": { name: "Douglas DC-8 Family", id: "dc-8-family" },
+    "DC91": { name: "Douglas DC-9-11", id: "DC-9-11" },
+    "DC92": { name: "Douglas DC-9-21", id: "DC-9-21" },
+    "DC93": { name: "Douglas DC-9-31", id: "DC-9-31" },
+    "DC94": { name: "Douglas DC-9-41", id: "DC-9-41" },
+    "DC95": { name: "Douglas DC-9-51", id: "DC-9-51" },
+    "DC9": { name: "Douglas DC-9 Family", id: "dc-9-family" },
+    "MD81": { name: "McDonnell Douglas MD-81", id: "MD-81" },
+    "MD82": { name: "McDonnell Douglas MD-82", id: "MD-82" },
+    "MD83": { name: "McDonnell Douglas MD-83", id: "MD-83" },
+    "MD88": { name: "McDonnell Douglas MD-88", id: "MD-88" },
+    "MD80": { name: "McDonnell Douglas MD-80 Family", id: "md-80-family" },
+    "MD90": { name: "McDonnell Douglas MD-90", id: "md-90" },
+    "ARJ2": { name: "COMAC C909", id: "c909-family" },
+    "C919": { name: "COMAC C919", id: "c919" },
+    "F70": { name: "Fokker 70", id: "Fokker-70" },
+    "F100": { name: "Fokker 100", id: "Fokker-100" }
 };
 
 /**
@@ -1288,6 +1523,9 @@ function calculateFlightStats() {
         document.getElementById("seat-aisle-bar").style.width = "0%";
         document.getElementById("seat-other-percent").textContent = "0%";
         document.getElementById("seat-other-bar").style.width = "0%";
+
+        // 월별 빈도 초기화
+        document.getElementById("monthly-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;width:100%;">등록된 비행이 없습니다.</p>';
         return;
     }
 
@@ -1449,6 +1687,52 @@ function calculateFlightStats() {
         `;
         airportsContainer.insertAdjacentHTML("beforeend", chipHTML);
     });
+
+    // 8. 월별 탑승 횟수 계산 및 렌더링
+    let targetYear = new Date().getFullYear();
+    if (flights.length > 0) {
+        const years = flights
+            .map(f => f.date ? parseInt(f.date.substring(0, 4)) : null)
+            .filter(y => y !== null && !isNaN(y));
+        if (years.length > 0) {
+            targetYear = Math.max(...years);
+        }
+    }
+
+    const monthlyCounts = Array(12).fill(0);
+    flights.forEach(f => {
+        if (f.date && f.date.startsWith(targetYear.toString())) {
+            const month = parseInt(f.date.substring(5, 7));
+            if (month >= 1 && month <= 12) {
+                monthlyCounts[month - 1]++;
+            }
+        }
+    });
+
+    const maxMonthCount = Math.max(...monthlyCounts, 1);
+    const monthlyContainer = document.getElementById("monthly-chart-container");
+    monthlyContainer.innerHTML = "";
+
+    const chartTitle = document.getElementById("monthly-chart-container").previousElementSibling;
+    if (chartTitle && chartTitle.tagName === "H3") {
+        chartTitle.textContent = `📅 월별 탑승 횟수 분석 (${targetYear}년)`;
+    }
+
+    for (let m = 0; m < 12; m++) {
+        const count = monthlyCounts[m];
+        const pct = Math.round((count / maxMonthCount) * 100);
+        const barHeight = count > 0 ? `${pct}%` : "4px"; 
+        
+        const monthHTML = `
+            <div class="monthly-bar-item">
+                <div class="monthly-bar-fill" style="height: ${barHeight}" title="${targetYear}년 ${m + 1}월: ${count}회 탑승">
+                    ${count > 0 ? `<span class="monthly-bar-value">${count}</span>` : ''}
+                </div>
+                <div class="monthly-bar-label">${m + 1}월</div>
+            </div>
+        `;
+        monthlyContainer.insertAdjacentHTML("beforeend", monthHTML);
+    }
 }
 
 /**

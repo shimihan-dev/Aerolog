@@ -10,6 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- CSS 연결 -->
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Vercel Analytics -->
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
     <!-- Supabase Auth 로그인/회원가입 화면 -->
@@ -220,7 +226,14 @@
                         <h3>📍 최다 방문 공항 TOP 5 (출/도착 포함)</h3>
                         <div id="airports-chart-container" class="airport-chips-list">
                             <!-- script.js에서 동적 생성 -->
-                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 월별 비행 빈도 분석 (신규 추가) -->
+                <div class="chart-card full-width" style="margin-top: 20px;">
+                    <h3>📅 월별 탑승 횟수 분석 (최근 12개월)</h3>
+                    <div id="monthly-chart-container" class="monthly-chart-wrapper">
+                        <!-- script.js에서 동적 생성 -->
                     </div>
                 </div>
             </div>
@@ -293,11 +306,13 @@
                     <div class="form-group">
                         <label for="flight-dep">출발 공항 (IATA) <span class="required">*</span></label>
                         <input type="text" id="flight-dep" maxlength="3" placeholder="예: GMP, ICN" required>
+                        <div id="flight-dep-match" class="airport-match-display"></div>
                     </div>
                     <!-- 도착 공항 -->
                     <div class="form-group">
                         <label for="flight-arr">도착 공항 (IATA) <span class="required">*</span></label>
                         <input type="text" id="flight-arr" maxlength="3" placeholder="예: CJU, NRT" required>
+                        <div id="flight-arr-match" class="airport-match-display"></div>
                     </div>
                     <!-- 기종명 -->
                     <div class="form-group">
