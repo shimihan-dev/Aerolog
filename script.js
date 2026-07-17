@@ -94,30 +94,30 @@ function initApp() {
         if (session) {
             console.log("로그인 상태 감지됨:", session.user.email);
             state.user = session.user;
-            
+
             // UI 전환: 로그인 카드 숨김, 메인 대시보드 표시
             elements.authContainer.style.display = "none";
             elements.appContainer.style.display = "block";
-            
+
             // 네비게이션 사용자 이메일 표시 및 로그아웃 단추 표시
             elements.headerUserInfo.style.display = "flex";
             elements.userEmailDisplay.textContent = session.user.email;
-            
+
             // 로컬스토리지가 남아있다면 로그인한 유저의 ID로 마이그레이션 진행
             await migrateLocalData(session.user.id);
-            
+
             // 유저의 비행 데이터 로딩
             await loadUserFlights();
         } else {
             console.log("로그아웃 상태 또는 미인증 유저");
             state.user = null;
             state.flights = [];
-            
+
             // UI 전환: 메인 대시보드 숨김, 로그인 카드 표시
             elements.appContainer.style.display = "none";
             elements.authContainer.style.display = "flex";
             elements.headerUserInfo.style.display = "none";
-            
+
             // 화면 갱신
             renderApp();
         }
@@ -324,10 +324,10 @@ function guessSeatPosition(seat) {
 function createFlightCardHTML(flight) {
     // 1. 기종명(aircraftTypeName)을 우선적으로 분석하여 최신 식별 ID를 유도하며, DB에 저장된 ID가 있다면 폴백으로 씁니다.
     const targetTypeId = (deriveAircraftTypeId(flight.aircraftTypeName) || flight.aircraftTypeId || "").trim();
-    
+
     // AeroType 프로젝트와의 연동 여부를 판단합니다.
     const isLinked = targetTypeId !== "";
-    
+
     // 실행 환경(로컬 vs Vercel 배포서버)에 따른 AeroType 경로 분기 처리
     const isLocal = window.location.protocol === 'file:' ||
         window.location.hostname === 'localhost' ||
@@ -522,13 +522,13 @@ function deriveAircraftTypeId(typeName) {
 
     if (name.includes("CONCORDE") || name.includes("CONC")) return "concorde";
     if (name.includes("L1011") || name.includes("TRISTAR") || name.includes("L101")) return "l1011-tristar";
-    
+
     if (name.includes("DC10") || name.includes("DC-10")) {
         if (name.includes("10-30") || name.includes("DC103")) return "DC-10-30";
         if (name.includes("10-10") || name.includes("DC101")) return "DC-10-10";
         return "dc-10-family";
     }
-    
+
     if (name.includes("DC8") || name.includes("DC-8")) {
         if (name.includes("8-73") || name.includes("DC873")) return "DC-8-73";
         if (name.includes("8-72") || name.includes("DC872")) return "DC-8-72";
@@ -590,7 +590,7 @@ async function handleAddFlightSubmit(event) {
     const aircraftTypeName = document.getElementById("flight-typename").value.trim();
 
     let aircraftTypeId = document.getElementById("flight-typeid").value.trim();
-    
+
     // 사용자가 입력 기종명을 직접 수동으로 수정한 경우 (조회한 상태 또는 수정 모드의 원본명과 비교)
     let needsReDerive = false;
     if (state.editingFlightId) {
@@ -980,7 +980,7 @@ const AIRPORT_KOREAN_MAP = {
     "RSU": "여수공항",
     "KUV": "군산공항",
     "WJU": "원주공항",
-    
+
     // 일본 공항
     "HND": "도쿄 하네다공항",
     "NRT": "도쿄 나리타공항",
@@ -988,7 +988,11 @@ const AIRPORT_KOREAN_MAP = {
     "ITM": "오사카 이타미공항",
     "FUK": "후쿠오카공항",
     "CTS": "삿포로 신치토세공항",
+    "HKD": "하코다테공항",
+    "KKJ": "키타큐슈공항",
     "NGO": "나고야 주부공항",
+    "SHI": "시모지시마공항",
+    "NKM": "나고야 고마키공항",
     "OKA": "오키나와 나하공항",
     "KOJ": "가고시마공항",
     "KMJ": "구마모토공항",
@@ -1000,7 +1004,7 @@ const AIRPORT_KOREAN_MAP = {
     "OKJ": "오카야마공항",
     "TAK": "다카마쓰공항",
     "KMI": "미야자키공항",
-    
+
     // 중국 및 대만, 홍콩, 마카오 공항
     "PEK": "베이징 서우두공항",
     "PKX": "베이징 다싱공항",
@@ -1018,10 +1022,11 @@ const AIRPORT_KOREAN_MAP = {
     "YNJ": "옌지 차오양촨공항",
     "HKG": "홍콩국제공항",
     "MFM": "마카오국제공항",
-    "TPE": "타이베이 타오원공항",
+    "TPE": "타이베이 타오위안공항",
     "TSA": "타이베이 송산공항",
     "KHH": "카오슝국제공항",
-    
+    "RMQ": "타이중공항",
+
     // 동남아시아 공항
     "SIN": "싱가포르 창이공항",
     "BKK": "방콕 수완나품공항",
@@ -1041,7 +1046,7 @@ const AIRPORT_KOREAN_MAP = {
     "CEB": "세부 막탄공항",
     "BOR": "보라카이 칼리보공항",
     "MPH": "보라카이 까띡란공항",
-    
+
     // 미주 및 유럽, 대양주 공항
     "JFK": "뉴욕 존 F. 케네디공항",
     "EWR": "뉴욕 뉴어크공항",
@@ -1526,7 +1531,7 @@ function calculateFlightStats() {
 
         // 월별 빈도 초기화
         document.getElementById("monthly-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;width:100%;">등록된 비행이 없습니다.</p>';
-        
+
         // 요일별 빈도 초기화
         document.getElementById("weekday-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;width:100%;">등록된 비행이 없습니다.</p>';
         return;
@@ -1709,8 +1714,8 @@ function calculateFlightStats() {
     for (let m = 0; m < 12; m++) {
         const count = monthlyCounts[m];
         const pct = Math.round((count / maxMonthCount) * 100);
-        const barHeight = count > 0 ? `${pct}%` : "4px"; 
-        
+        const barHeight = count > 0 ? `${pct}%` : "4px";
+
         const monthHTML = `
             <div class="monthly-bar-item">
                 <div class="monthly-bar-fill" style="height: ${barHeight}" title="전체 ${m + 1}월: ${count}회 탑승">
@@ -1725,7 +1730,7 @@ function calculateFlightStats() {
     // 9. 요일별 탑승 횟수 계산 및 렌더링 (전체 기간 누적)
     const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
     const weekdayCounts = Array(7).fill(0);
-    
+
     flights.forEach(f => {
         if (f.date) {
             const parts = f.date.split("-");
@@ -1751,7 +1756,7 @@ function calculateFlightStats() {
     for (let w = 0; w < 7; w++) {
         const count = weekdayCounts[w];
         const pct = Math.round((count / maxWeekdayCount) * 100);
-        const barHeight = count > 0 ? `${pct}%` : "4px"; 
+        const barHeight = count > 0 ? `${pct}%` : "4px";
 
         const weekdayHTML = `
             <div class="monthly-bar-item">
