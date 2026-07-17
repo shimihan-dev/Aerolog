@@ -1526,6 +1526,9 @@ function calculateFlightStats() {
 
         // 월별 빈도 초기화
         document.getElementById("monthly-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;width:100%;">등록된 비행이 없습니다.</p>';
+        
+        // 요일별 빈도 초기화
+        document.getElementById("weekday-chart-container").innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:12px 0;width:100%;">등록된 비행이 없습니다.</p>';
         return;
     }
 
@@ -1688,20 +1691,10 @@ function calculateFlightStats() {
         airportsContainer.insertAdjacentHTML("beforeend", chipHTML);
     });
 
-    // 8. 월별 탑승 횟수 계산 및 렌더링
-    let targetYear = new Date().getFullYear();
-    if (flights.length > 0) {
-        const years = flights
-            .map(f => f.date ? parseInt(f.date.substring(0, 4)) : null)
-            .filter(y => y !== null && !isNaN(y));
-        if (years.length > 0) {
-            targetYear = Math.max(...years);
-        }
-    }
-
+    // 8. 월별 탑승 횟수 계산 및 렌더링 (전체 기간 누적)
     const monthlyCounts = Array(12).fill(0);
     flights.forEach(f => {
-        if (f.date && f.date.startsWith(targetYear.toString())) {
+        if (f.date && f.date.length >= 7) {
             const month = parseInt(f.date.substring(5, 7));
             if (month >= 1 && month <= 12) {
                 monthlyCounts[month - 1]++;
@@ -1713,11 +1706,6 @@ function calculateFlightStats() {
     const monthlyContainer = document.getElementById("monthly-chart-container");
     monthlyContainer.innerHTML = "";
 
-    const chartTitle = document.getElementById("monthly-chart-container").previousElementSibling;
-    if (chartTitle && chartTitle.tagName === "H3") {
-        chartTitle.textContent = `📅 월별 탑승 횟수 분석 (${targetYear}년)`;
-    }
-
     for (let m = 0; m < 12; m++) {
         const count = monthlyCounts[m];
         const pct = Math.round((count / maxMonthCount) * 100);
@@ -1725,13 +1713,55 @@ function calculateFlightStats() {
         
         const monthHTML = `
             <div class="monthly-bar-item">
-                <div class="monthly-bar-fill" style="height: ${barHeight}" title="${targetYear}년 ${m + 1}월: ${count}회 탑승">
+                <div class="monthly-bar-fill" style="height: ${barHeight}" title="전체 ${m + 1}월: ${count}회 탑승">
                     ${count > 0 ? `<span class="monthly-bar-value">${count}</span>` : ''}
                 </div>
                 <div class="monthly-bar-label">${m + 1}월</div>
             </div>
         `;
         monthlyContainer.insertAdjacentHTML("beforeend", monthHTML);
+    }
+
+    // 9. 요일별 탑승 횟수 계산 및 렌더링 (전체 기간 누적)
+    const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+    const weekdayCounts = Array(7).fill(0);
+    
+    flights.forEach(f => {
+        if (f.date) {
+            const parts = f.date.split("-");
+            if (parts.length === 3) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const day = parseInt(parts[2]);
+                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                    const dateObj = new Date(year, month, day);
+                    const dayOfWeek = dateObj.getDay();
+                    if (dayOfWeek >= 0 && dayOfWeek <= 6) {
+                        weekdayCounts[dayOfWeek]++;
+                    }
+                }
+            }
+        }
+    });
+
+    const maxWeekdayCount = Math.max(...weekdayCounts, 1);
+    const weekdayContainer = document.getElementById("weekday-chart-container");
+    weekdayContainer.innerHTML = "";
+
+    for (let w = 0; w < 7; w++) {
+        const count = weekdayCounts[w];
+        const pct = Math.round((count / maxWeekdayCount) * 100);
+        const barHeight = count > 0 ? `${pct}%` : "4px"; 
+
+        const weekdayHTML = `
+            <div class="monthly-bar-item">
+                <div class="weekday-bar-fill" style="height: ${barHeight}" title="전체 ${WEEKDAYS[w]}요일: ${count}회 탑승">
+                    ${count > 0 ? `<span class="weekday-bar-value">${count}</span>` : ''}
+                </div>
+                <div class="monthly-bar-label">${WEEKDAYS[w]}</div>
+            </div>
+        `;
+        weekdayContainer.insertAdjacentHTML("beforeend", weekdayHTML);
     }
 }
 
