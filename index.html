@@ -407,9 +407,11 @@
                     <label for="gemini-api-key-input">Gemini API Key</label>
                     <input type="password" id="gemini-api-key-input" placeholder="AIzaSy..." style="font-family: monospace;">
                 </div>
+                <div id="gemini-key-test-status" class="lookup-status-msg hidden" style="margin-top: 10px;"></div>
             </div>
-            <div class="form-actions" style="margin-top: 20px;">
-                <button type="button" id="btn-save-gemini-key" class="btn btn-primary" style="width: 100%;">저장하기</button>
+            <div class="form-actions" style="margin-top: 20px; display: flex; gap: 8px;">
+                <button type="button" id="btn-test-gemini-key" class="btn btn-secondary" style="flex: 1;">🧪 키 검증 테스트</button>
+                <button type="button" id="btn-save-gemini-key" class="btn btn-primary" style="flex: 1;">저장하기</button>
             </div>
         </div>
     </div>

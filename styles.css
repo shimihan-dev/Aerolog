@@ -1,4 +1,4 @@
-/* ==========================================================================
+역/* ==========================================================================
    FlightLog CSS Style - 항공 로그북 & 보딩패스 스타일 테마
    초보자 가이드: CSS Custom Properties(변수)를 사용하여 컬러 스키마를 정의합니다.
    ========================================================================== */
@@ -1776,6 +1776,29 @@ body {
 
 .btn-link:hover {
     color: var(--color-accent-hover);
+}
+
+/* Gemini AI 자동 입력 필드 시각 하이라이트 애니메이션 */
+@keyframes fieldPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+        border-color: #10b981;
+        background-color: rgba(16, 185, 129, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.25);
+        border-color: #10b981;
+        background-color: rgba(16, 185, 129, 0.15);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        border-color: var(--border-color);
+        background-color: var(--bg-card);
+    }
+}
+
+.ai-highlighted {
+    animation: fieldPulse 1.8s ease-in-out 2;
 }
 
 
