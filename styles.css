@@ -764,6 +764,68 @@ body {
     z-index: 10;
 }
 
+/* AI 티켓 스캐너 배너 스타일 */
+.ai-banner-container {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    border-bottom: 1px solid #dbeafe;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.btn-ai-scan {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-ai-scan:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.btn-ai-scan:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-key-config {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    color: var(--text-medium);
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-key-config:hover {
+    background-color: #f8fafc;
+    color: var(--text-dark);
+}
+
+.ai-icon {
+    width: 18px;
+    height: 18px;
+}
+
 .modal-header h2 {
     font-size: 1.25rem;
     color: var(--color-primary);

@@ -279,6 +279,16 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
+            <div class="ai-banner-container">
+                <button type="button" id="btn-ai-ticket" class="btn-ai-scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ai-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    📸 티켓 사진으로 폼 자동 채우기 (Gemini AI)
+                </button>
+                <button type="button" id="btn-gemini-key-config" class="btn-key-config" title="Gemini API Key 설정">
+                    🔑 키 설정
+                </button>
+                <input type="file" id="ticket-file-input" accept="image/*" class="hidden">
+            </div>
             <form id="add-flight-form" class="flight-form">
                 <div class="form-grid">
                     <!-- 탑승일 -->
@@ -377,6 +387,30 @@
                     <button type="submit" id="submit-form-btn" class="btn btn-primary">등록하기</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <!-- Gemini API Key 설정 모달 창 -->
+    <div id="gemini-key-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h2>🔑 Google Gemini API Key 설정</h2>
+                <button id="close-gemini-key-btn-x" class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="close-icon"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 16px 0 0;">
+                <p style="font-size: 0.85rem; color: var(--text-medium); line-height: 1.5; margin-bottom: 16px;">
+                    Google AI Studio에서 발급받으신 <strong>Gemini API Key</strong>를 입력해 주세요.<br>
+                    키는 서버로 전송되지 않고 본인 브라우저(LocalStorage)에만 안전하게 보관됩니다.
+                </p>
+                <div class="form-group">
+                    <label for="gemini-api-key-input">Gemini API Key</label>
+                    <input type="password" id="gemini-api-key-input" placeholder="AIzaSy..." style="font-family: monospace;">
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="button" id="btn-save-gemini-key" class="btn btn-primary" style="width: 100%;">저장하기</button>
+            </div>
         </div>
     </div>
 

@@ -75,7 +75,16 @@ const elements = {
     flightDepInput: document.getElementById("flight-dep"),
     flightArrInput: document.getElementById("flight-arr"),
     flightDepMatch: document.getElementById("flight-dep-match"),
-    flightArrMatch: document.getElementById("flight-arr-match")
+    flightArrMatch: document.getElementById("flight-arr-match"),
+
+    // Gemini AI 티켓 스캐너 참조 추가
+    btnAiTicket: document.getElementById("btn-ai-ticket"),
+    btnGeminiKeyConfig: document.getElementById("btn-gemini-key-config"),
+    ticketFileInput: document.getElementById("ticket-file-input"),
+    geminiKeyModal: document.getElementById("gemini-key-modal"),
+    closeGeminiKeyBtnX: document.getElementById("close-gemini-key-btn-x"),
+    geminiApiKeyInput: document.getElementById("gemini-api-key-input"),
+    btnSaveGeminiKey: document.getElementById("btn-save-gemini-key")
 };
 
 // ==========================================================================
@@ -893,6 +902,34 @@ function setupEventListeners() {
         elements.flightArrMatch.textContent = matchedName ? `도착지: ${matchedName}` : "";
     });
 
+    // 7.2 Gemini AI 티켓 스캐너 및 API 키 모달 이벤트
+    elements.btnAiTicket.addEventListener("click", () => {
+        elements.ticketFileInput.click();
+    });
+
+    elements.ticketFileInput.addEventListener("change", handleTicketFileSelected);
+
+    elements.btnGeminiKeyConfig.addEventListener("click", openGeminiKeyModal);
+    elements.closeGeminiKeyBtnX.addEventListener("click", closeGeminiKeyModal);
+
+    elements.btnSaveGeminiKey.addEventListener("click", () => {
+        const key = elements.geminiApiKeyInput.value.trim();
+        if (!key) {
+            alert("Gemini API Key를 입력해 주세요.");
+            elements.geminiApiKeyInput.focus();
+            return;
+        }
+        localStorage.setItem("flightLog_gemini_key", key);
+        alert("Gemini API Key가 브라우저에 안전하게 저장되었습니다.");
+        closeGeminiKeyModal();
+    });
+
+    elements.geminiKeyModal.addEventListener("click", (e) => {
+        if (e.target === elements.geminiKeyModal) {
+            closeGeminiKeyModal();
+        }
+    });
+
     // 8. 요약 대시보드 카드 클릭 이벤트 및 팝업 모달 제어
     elements.statAirlinesCard.addEventListener("click", openAirlinesDetailModal);
     elements.statTypesCard.addEventListener("click", openTypesDetailModal);
@@ -1228,8 +1265,187 @@ const AIRCRAFT_IATA_MAP = {
 };
 
 /**
- * 편명을 실시간 API(Aviationstack)에서 조회하여 정보를 채워넣는 함수
+ * 저장된 Gemini API Key를 가져오는 헬퍼 함수
  */
+function getStoredGeminiKey() {
+    return localStorage.getItem("flightLog_gemini_key") || "";
+}
+
+/**
+ * Gemini API Key 설정 모달 열기
+ */
+function openGeminiKeyModal() {
+    elements.geminiApiKeyInput.value = getStoredGeminiKey();
+    elements.geminiKeyModal.classList.add("active");
+}
+
+/**
+ * Gemini API Key 설정 모달 닫기
+ */
+function closeGeminiKeyModal() {
+    elements.geminiKeyModal.classList.remove("active");
+}
+
+/**
+ * 티켓 이미지 파일 선택 시 Gemini AI 분석을 수행하는 핸들러
+ */
+async function handleTicketFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 1. API Key 존재 여부 확인
+    const apiKey = getStoredGeminiKey();
+    if (!apiKey) {
+        alert("Gemini AI 기능을 사용하기 위해 먼저 API Key를 설정해 주세요.");
+        openGeminiKeyModal();
+        event.target.value = ""; // 입력 초기화
+        return;
+    }
+
+    // 2. 이미지 파일 타입 확인
+    if (!file.type.startsWith("image/")) {
+        alert("이미지 파일만 선택하실 수 있습니다.");
+        event.target.value = "";
+        return;
+    }
+
+    // 3. UI 로딩 상태 변경
+    elements.lookupStatus.className = "lookup-status-msg loading";
+    elements.lookupStatus.innerHTML = `<span class="spinner"></span> Gemini AI가 티켓 이미지에서 비행 정보(공항, 편명, 날짜 등)를 분석하는 중입니다...`;
+    elements.btnAiTicket.disabled = true;
+
+    try {
+        // Base64 읽기
+        const base64Data = await readAsBase64(file);
+        const mimeType = file.type;
+
+        // Gemini REST API 호출
+        const parsedResult = await callGeminiVisionApi(apiKey, base64Data, mimeType);
+
+        if (parsedResult) {
+            // 결과 자동 입력 (Auto-populate)
+            if (parsedResult.departureAirport) {
+                elements.flightDepInput.value = parsedResult.departureAirport.trim().toUpperCase();
+                const matchedDep = getAirportName(elements.flightDepInput.value);
+                elements.flightDepMatch.textContent = matchedDep ? `출발지: ${matchedDep}` : "";
+            }
+            if (parsedResult.arrivalAirport) {
+                elements.flightArrInput.value = parsedResult.arrivalAirport.trim().toUpperCase();
+                const matchedArr = getAirportName(elements.flightArrInput.value);
+                elements.flightArrMatch.textContent = matchedArr ? `도착지: ${matchedArr}` : "";
+            }
+            if (parsedResult.flightNumber) {
+                document.getElementById("flight-number").value = parsedResult.flightNumber.trim().toUpperCase();
+            }
+            if (parsedResult.date) {
+                document.getElementById("flight-date").value = parsedResult.date.trim();
+            }
+            if (parsedResult.airline) {
+                document.getElementById("flight-airline").value = parsedResult.airline.trim();
+            }
+            if (parsedResult.seat) {
+                document.getElementById("flight-seat").value = parsedResult.seat.trim().toUpperCase();
+                const guessedPos = guessSeatPosition(parsedResult.seat.trim().toUpperCase());
+                if (guessedPos) {
+                    elements.seatPositionSelect.value = guessedPos;
+                }
+            }
+
+            elements.lookupStatus.className = "lookup-status-msg success";
+            elements.lookupStatus.textContent = "✨ Gemini AI가 티켓 사진을 분석하여 폼 정보를 자동으로 입력했습니다!";
+        } else {
+            throw new Error("티켓 정보 추출 실패. 이미지 상태를 확인하고 수동으로 입력해 주세요.");
+        }
+    } catch (err) {
+        console.error("Gemini Ticket Analysis Error:", err);
+        elements.lookupStatus.className = "lookup-status-msg error";
+        elements.lookupStatus.textContent = `⚠ AI 티켓 분석 실패: ${err.message || "이미지 분석 오류"}`;
+    } finally {
+        elements.btnAiTicket.disabled = false;
+        event.target.value = ""; // 파일 선택 초기화
+    }
+}
+
+/**
+ * FileReader를 이용한 Base64 인코딩 비동기 함수
+ */
+function readAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * Gemini 1.5 Flash Vision REST API 호출 함수
+ */
+async function callGeminiVisionApi(apiKey, base64Data, mimeType) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const promptText = `Analyze this airline ticket or boarding pass image and extract flight details in JSON format.
+Return ONLY valid JSON matching this schema:
+{
+  "departureAirport": "3-letter IATA airport code of departure",
+  "arrivalAirport": "3-letter IATA airport code of arrival",
+  "flightNumber": "Airline flight number e.g. KE1101",
+  "date": "Flight date in YYYY-MM-DD format",
+  "airline": "Airline name in Korean if available (e.g. 대한항공, 아시아나항공, 제주항공) or English",
+  "seat": "Seat number e.g. 42A"
+}`;
+
+    const requestBody = {
+        contents: [
+            {
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Data
+                        }
+                    },
+                    {
+                        text: promptText
+                    }
+                ]
+            }
+        ],
+        generationConfig: {
+            responseMimeType: "application/json"
+        }
+    };
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        let errDetails = `API 상태 코드 ${response.status}`;
+        try {
+            const errJson = await response.json();
+            if (errJson && errJson.error && errJson.error.message) {
+                errDetails = errJson.error.message;
+            }
+        } catch (e) {}
+        throw new Error(errDetails);
+    }
+
+    const data = await response.json();
+    if (data.candidates && data.candidates.length > 0) {
+        const textContent = data.candidates[0].content.parts[0].text;
+        return JSON.parse(textContent);
+    }
+    return null;
+}
+
 /**
  * 편명을 실시간 API(AeroDataBox)에서 조회하여 정보를 채워넣는 함수
  */
