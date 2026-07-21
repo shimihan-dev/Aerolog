@@ -1212,60 +1212,103 @@ const AIRCRAFT_IATA_MAP = {
     "B789": { name: "Boeing 787-9", id: "B787-9" },
     "B78X": { name: "Boeing 787-10", id: "B787-10" },
     "AT42": { name: "ATR 42", id: "ATR 42" },
-    "AT43": { name: "ATR 42-300", id: "ATR 42-300" },
-    "AT45": { name: "ATR 42-500", id: "ATR 42-500" },
-    "AT46": { name: "ATR 42-600", id: "ATR 42-600" },
-    "AT72": { name: "ATR 72", id: "ATR 72" },
-    "AT73": { name: "ATR 72-300", id: "ATR 72-300" },
-    "AT75": { name: "ATR 72-500", id: "ATR 72-500" },
-    "AT76": { name: "ATR 72-600", id: "ATR 72-600" },
-    "E135": { name: "Embraer 135", id: "E135" },
-    "E145": { name: "Embraer 145", id: "E145" },
-    "E170": { name: "Embraer 170", id: "E170" },
-    "E175": { name: "Embraer 175", id: "E175" },
-    "E190": { name: "Embraer 190", id: "E190" },
-    "E195": { name: "Embraer 195", id: "E195" },
-    "E295": { name: "Embraer 195-E2", id: "E195-E2" },
-    "E290": { name: "Embraer 190-E2", id: "E190-E2" },
-    "CRJ2": { name: "Bombardier CRJ-200", id: "CRJ-200" },
-    "CRJ7": { name: "Bombardier CRJ-700", id: "CRJ-700" },
-    "CRJ9": { name: "Bombardier CRJ-900", id: "CRJ-900" },
-    "CRJX": { name: "Bombardier CRJ-1000", id: "CRJ-1000" },
-    "DH1": { name: "Bombardier Dash 8-100", id: "Dash8-100" },
-    "DH2": { name: "Bombardier Dash 8-200", id: "Dash8-200" },
-    "DH3": { name: "Bombardier Dash 8-300", id: "Dash8-300" },
-    "DH4": { name: "Bombardier Dash 8 Q400", id: "Dash8-400" },
-    "CONC": { name: "Airbus Concorde", id: "concorde" },
-    "L101": { name: "Lockheed L-1011 TriStar", id: "l1011-tristar" },
-    "DC10": { name: "Douglas DC-10", id: "dc-10-family" },
-    "DC81": { name: "Douglas DC-8-11", id: "DC-8-11" },
-    "DC82": { name: "Douglas DC-8-21", id: "DC-8-21" },
-    "DC83": { name: "Douglas DC-8-31", id: "DC-8-31" },
-    "DC84": { name: "Douglas DC-8-41", id: "DC-8-41" },
-    "DC85": { name: "Douglas DC-8-51", id: "DC-8-51" },
-    "DC86": { name: "Douglas DC-8-61", id: "DC-8-61" },
-    "DC87": { name: "Douglas DC-8-71", id: "DC-8-71" },
-    "DC8": { name: "Douglas DC-8 Family", id: "dc-8-family" },
-    "DC91": { name: "Douglas DC-9-11", id: "DC-9-11" },
-    "DC92": { name: "Douglas DC-9-21", id: "DC-9-21" },
-    "DC93": { name: "Douglas DC-9-31", id: "DC-9-31" },
-    "DC94": { name: "Douglas DC-9-41", id: "DC-9-41" },
-    "DC95": { name: "Douglas DC-9-51", id: "DC-9-51" },
-    "DC9": { name: "Douglas DC-9 Family", id: "dc-9-family" },
-    "MD81": { name: "McDonnell Douglas MD-81", id: "MD-81" },
-    "MD82": { name: "McDonnell Douglas MD-82", id: "MD-82" },
-    "MD83": { name: "McDonnell Douglas MD-83", id: "MD-83" },
-    "MD88": { name: "McDonnell Douglas MD-88", id: "MD-88" },
-    "MD80": { name: "McDonnell Douglas MD-80 Family", id: "md-80-family" },
-    "MD90": { name: "McDonnell Douglas MD-90", id: "md-90" },
-    "ARJ2": { name: "COMAC C909", id: "c909-family" },
-    "C919": { name: "COMAC C919", id: "c919" },
-    "F70": { name: "Fokker 70", id: "Fokker-70" },
-    "F100": { name: "Fokker 100", id: "Fokker-100" }
-};
+    "AT43": { name: "ATR 42-300", id: "ATR 4async function callGeminiVisionApi(apiKey, base64Data, mimeType) {
+    // 1. API 키로 사용 가능한 최적의 Gemini 모델 자동 조회 (ListModels)
+    let selectedModel = "models/gemini-1.5-flash"; // 기본 폴백값
+    try {
+        const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const listRes = await fetch(listUrl);
+        if (listRes.ok) {
+            const listData = await listRes.json();
+            if (listData.models && listData.models.length > 0) {
+                // generateContent 지원 모델 추출
+                const supported = listData.models.filter(m => 
+                    m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+                );
+                
+                // flash 또는 pro 모델 우선 검색
+                const flashModel = supported.find(m => m.name.toLowerCase().includes("flash"));
+                const proModel = supported.find(m => m.name.toLowerCase().includes("pro"));
+                const anyGemini = supported.find(m => m.name.toLowerCase().includes("gemini"));
 
-/**
- * 저장된 Gemini API Key를 가져오는 헬퍼 함수
+                if (flashModel) {
+                    selectedModel = flashModel.name;
+                } else if (proModel) {
+                    selectedModel = proModel.name;
+                } else if (anyGemini) {
+                    selectedModel = anyGemini.name;
+                } else if (supported.length > 0) {
+                    selectedModel = supported[0].name;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Model list fetch failed, falling back to default model name", e);
+    }
+
+    // "models/..." 접두사 보장
+    const modelEndpoint = selectedModel.startsWith("models/") ? selectedModel : `models/${selectedModel}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/${modelEndpoint}:generateContent?key=${apiKey}`;
+
+    const promptText = `Analyze this airline ticket or boarding pass image and extract flight details in JSON format.
+Return ONLY valid JSON matching this schema:
+{
+  "departureAirport": "3-letter IATA airport code of departure",
+  "arrivalAirport": "3-letter IATA airport code of arrival",
+  "flightNumber": "Airline flight number e.g. KE1101",
+  "date": "Flight date in YYYY-MM-DD format",
+  "airline": "Airline name in Korean if available (e.g. 대한항공, 아시아나항공, 제주항공) or English",
+  "seat": "Seat number e.g. 42A"
+}`;
+
+    const requestBody = {
+        contents: [
+            {
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Data
+                        }
+                    },
+                    {
+                        text: promptText
+                    }
+                ]
+            }
+        ],
+        generationConfig: {
+            responseMimeType: "application/json"
+        }
+    };
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        let errDetails = `API 상태 코드 ${response.status}`;
+        try {
+            const errJson = await response.json();
+            if (errJson && errJson.error && errJson.error.message) {
+                errDetails = errJson.error.message;
+            }
+        } catch (e) {}
+        throw new Error(errDetails);
+    }
+
+    const data = await response.json();
+    if (data.candidates && data.candidates.length > 0) {
+        const textContent = data.candidates[0].content.parts[0].text;
+        return JSON.parse(textContent);
+    }
+
+    return null;
+}�퍼 함수
  */
 function getStoredGeminiKey() {
     return localStorage.getItem("flightLog_gemini_key") || "";
