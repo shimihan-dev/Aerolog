@@ -1236,11 +1236,20 @@ const AIRCRAFT_IATA_MAP = {
     "DH8D": { name: "De Havilland Dash 8-400", id: "Dash 8-400" }
 };
 
+// 프로젝트 공용 기본 Gemini API Key (모든 사용자가 키 설정 없이 기본 사용할 수 있는 공용 Key)
+const DEFAULT_GEMINI_API_KEY = "";
+
 /**
  * Gemini API Key 획득 헬퍼 함수
+ * 1순위: 사용자가 직접 설정한 개인 Key (localStorage)
+ * 2순위: 시스템 프로젝트 공용 Default Key
  */
 function getStoredGeminiKey() {
-    return localStorage.getItem("flightLog_gemini_key") || "";
+    const userKey = localStorage.getItem("flightLog_gemini_key");
+    if (userKey && userKey.trim() !== "") {
+        return userKey.trim();
+    }
+    return DEFAULT_GEMINI_API_KEY.trim();
 }
 
 /**
