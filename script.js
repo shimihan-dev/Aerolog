@@ -1385,9 +1385,22 @@ function readAsBase64(file) {
  * Gemini 1.5 Flash Vision REST API 호출 함수
  */
 async function callGeminiVisionApi(apiKey, base64Data, mimeType) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Google AI Studio 모델 버전 호환성을 위한 후보 모델 리스트
+    const candidateModels = [
+        "gemini-1.5-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash-001",
+        "gemini-1.5-flash-002",
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-pro-latest"
+    ];
 
-    const promptText = `Analyze this airline ticket or boarding pass image and extract flight details in JSON format.
+    let lastError = null;
+
+    for (const model of candidateModels) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const promptText = `Analyze this airline ticket or boarding pass image and extract flight details in JSON format.
 Return ONLY valid JSON matching this schema:
 {
   "departureAirport": "3-letter IATA airport code of departure",
@@ -1398,52 +1411,58 @@ Return ONLY valid JSON matching this schema:
   "seat": "Seat number e.g. 42A"
 }`;
 
-    const requestBody = {
-        contents: [
-            {
-                parts: [
-                    {
-                        inlineData: {
-                            mimeType: mimeType,
-                            data: base64Data
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        {
+                            inlineData: {
+                                mimeType: mimeType,
+                                data: base64Data
+                            }
+                        },
+                        {
+                            text: promptText
                         }
-                    },
-                    {
-                        text: promptText
-                    }
-                ]
+                    ]
+                }
+            ],
+            generationConfig: {
+                responseMimeType: "application/json"
             }
-        ],
-        generationConfig: {
-            responseMimeType: "application/json"
-        }
-    };
+        };
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-        let errDetails = `API 상태 코드 ${response.status}`;
         try {
-            const errJson = await response.json();
-            if (errJson && errJson.error && errJson.error.message) {
-                errDetails = errJson.error.message;
-            }
-        } catch (e) {}
-        throw new Error(errDetails);
-    }
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(requestBody)
+            });
 
-    const data = await response.json();
-    if (data.candidates && data.candidates.length > 0) {
-        const textContent = data.candidates[0].content.parts[0].text;
-        return JSON.parse(textContent);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.candidates && data.candidates.length > 0) {
+                    const textContent = data.candidates[0].content.parts[0].text;
+                    return JSON.parse(textContent);
+                }
+            } else {
+                let errDetails = `API 상태 코드 ${response.status}`;
+                try {
+                    const errJson = await response.json();
+                    if (errJson && errJson.error && errJson.error.message) {
+                        errDetails = errJson.error.message;
+                    }
+                } catch (e) {}
+                lastError = new Error(errDetails);
+                console.warn(`Model ${model} failed, trying next fallback... (${errDetails})`);
+            }
+        } catch (e) {
+            lastError = e;
+        }
     }
-    return null;
+    throw lastError || new Error("Gemini AI 모델 호출 실패");
 }
 
 /**
