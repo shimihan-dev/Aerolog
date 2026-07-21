@@ -1237,7 +1237,7 @@ const AIRCRAFT_IATA_MAP = {
 };
 
 // 프로젝트 공용 기본 Gemini API Key (모든 사용자가 키 설정 없이 기본 사용할 수 있는 공용 Key)
-const DEFAULT_GEMINI_API_KEY = "";
+const DEFAULT_GEMINI_API_KEY = "AIzaSyClbN9fNsia2_762mIVsJPC7J7dxICBJRw";
 
 /**
  * Gemini API Key 획득 헬퍼 함수
@@ -1294,7 +1294,7 @@ async function testGeminiApiKey(apiKey) {
             try {
                 const errData = await res.json();
                 if (errData.error && errData.error.message) msg = errData.error.message;
-            } catch (e) {}
+            } catch (e) { }
             elements.geminiKeyTestStatus.className = "lookup-status-msg error";
             elements.geminiKeyTestStatus.textContent = `❌ Key 검증 실패: ${msg}`;
         }
@@ -1498,7 +1498,7 @@ async function callGeminiVisionApi(apiKey, base64Data, mimeType) {
         if (listRes.ok) {
             const listData = await listRes.json();
             if (listData.models && listData.models.length > 0) {
-                const supported = listData.models.filter(m => 
+                const supported = listData.models.filter(m =>
                     m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
                 );
 
@@ -1584,7 +1584,7 @@ Do not include any explanation or markdown codeblocks; output pure JSON only.`;
                     if (errJson && errJson.error && errJson.error.message) {
                         errDetails = errJson.error.message;
                     }
-                } catch (e) {}
+                } catch (e) { }
                 lastError = new Error(errDetails);
                 console.warn(`Model ${modelEndpoint} failed (${errDetails}), trying next model...`);
             }
